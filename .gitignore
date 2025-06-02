@@ -12,3 +12,12 @@ venv
 *.pyc
 __pycache__/
 *.egg-info/
+
+# 빌드 아티팩트
+build/
+# 테스트 결과
+test-results/
+# 로그 파일
+*.log
+# 문서화 결과
+docs/_build/

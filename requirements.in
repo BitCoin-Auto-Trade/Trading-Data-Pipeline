@@ -5,3 +5,4 @@ pandas
 pyarrow
 requests
 python-dotenv
+pytest
