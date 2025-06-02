@@ -30,9 +30,9 @@
 ### 최우선 
 
 #### 1. Binance OHLCV 수집
-- [ ] Binance Futures REST API 호출 (interval: 15m, 1h)
-- [ ] 심볼/간격/시간 범위 입력 파라미터 처리
-- [ ] pandas DataFrame 반환
+- [x] Binance Futures REST API 호출 (interval: 15m, 1h)
+- [x] 심볼/간격/시간 범위 입력 파라미터 처리
+- [x] pandas DataFrame 반환
 
 #### 2. 데이터 포맷 정제
 - [ ] UTC 기준 정렬
@@ -41,9 +41,9 @@
 - [ ] CSV 또는 Parquet 저장 기능
 
 #### 3. S3 업로드
-- [ ] boto3 기반 업로드 함수 구현
-- [ ] S3 경로 설계: `ohlcv/{interval}/{symbol}/{yyyy-MM-dd_HH}.parquet`
-- [ ] 업로드 성공/실패 로그 처리
+- [x] boto3 기반 업로드 함수 구현
+- [x] S3 경로 설계: `ohlcv/{interval}/{symbol}/{yyyy-MM-dd_HH}.parquet`
+- [x] 업로드 성공/실패 로그 처리
 
 #### 4. Snowflake 적재
 - [ ] COPY INTO 쿼리 실행 함수 작성
@@ -63,8 +63,8 @@
 - [ ] Snowflake COPY 실패 시 로그 남기고 skip
 
 #### 7. 설정 분리
-- [ ] `.env` 또는 `config.yaml` 파일 사용
-- [ ] Binance / AWS / Snowflake 키 관리
+- [x] `.env` 또는 `config.yaml` 파일 사용
+- [x] Binance / AWS / Snowflake 키 관리
 
 #### 8. 로깅 시스템
 - [ ] task 단위 로그 기록 (INFO, ERROR)
