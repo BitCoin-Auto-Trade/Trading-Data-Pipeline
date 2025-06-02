@@ -1,0 +1,7 @@
+# core
+boto3
+snowflake-connector-python
+pandas
+pyarrow
+requests
+python-dotenv
