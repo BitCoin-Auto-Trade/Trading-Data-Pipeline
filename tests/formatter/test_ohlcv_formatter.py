@@ -1,24 +1,15 @@
 import pandas as pd
-from src.formatter.ohlcv_formatter import clean_ohlcv, save_to_parquet
-from datetime import datetime
+from formatter.ohlcv_formatter import format_ohlcv
 
-def test_clean_ohlcv_basic():
-    data = {
-        "timestamp": [datetime(2024, 1, 1, 0), datetime(2024, 1, 1, 0)],  # 중복
-        "open": [1.0, 1.0],
-        "high": [2.0, 2.0],
-        "low": [0.5, 0.5],
-        "close": [1.5, 1.5],
-        "volume": [100, 100],
-        "symbol": ["BTCUSDT", "BTCUSDT"],
-        "interval": ["15m", "15m"]
-    }
-    df = pd.DataFrame(data)
+def test_format_ohlcv_removes_duplicates_and_sorts():
+    df = pd.DataFrame([
+        {"timestamp": "2024-01-01 01:00:00", "open": 1, "high": 2, "low": 1, "close": 2, "volume": 10, "symbol": "BTCUSDT", "interval": "15m"},
+        {"timestamp": "2024-01-01 01:00:00", "open": 1, "high": 2, "low": 1, "close": 2, "volume": 10, "symbol": "BTCUSDT", "interval": "15m"},
+        {"timestamp": "2024-01-01 00:45:00", "open": 1, "high": 2, "low": 1, "close": 2, "volume": 10, "symbol": "BTCUSDT", "interval": "15m"},
+    ])
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-    cleaned = clean_ohlcv(df)
+    formatted = format_ohlcv(df)
 
-    assert cleaned.shape[0] == 1  # 중복 제거 확인
-    assert list(cleaned.columns) == [
-        "timestamp", "open", "high", "low", "close", "volume", "symbol", "interval"
-    ]
-    assert cleaned["timestamp"].dt.tz is not None  # UTC 확인
+    assert len(formatted) == 2
+    assert formatted.iloc[0]["timestamp"] < formatted.iloc[1]["timestamp"]

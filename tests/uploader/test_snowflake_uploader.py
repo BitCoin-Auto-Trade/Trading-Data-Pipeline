@@ -1,7 +1,7 @@
 from unittest.mock import patch, MagicMock
-from loader.snowflake_loader import load_parquet_to_snowflake
+from uploader.snowflake_uploader import load_parquet_to_snowflake
 
-@patch("loader.snowflake_loader.snowflake.connector.connect")
+@patch("uploader.snowflake_uploader.snowflake.connector.connect")
 def test_load_parquet_to_snowflake_success(mock_connect):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
