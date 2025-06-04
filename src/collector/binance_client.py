@@ -1,7 +1,10 @@
-import requests
-import pandas as pd
+import logging
 from datetime import datetime
 from typing import Literal
+import requests
+import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 Interval = Literal["15m", "1h"]
 
@@ -15,15 +18,17 @@ def fetch_ohlcv(symbol: str, interval: Interval, start_time: datetime, end_time:
         "limit": 1000
     }
 
-    response = requests.get(url, params=params)
-    response.raise_for_status()
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Binance API request failed: {e}")
+        raise
 
     data = response.json()
-    df = pd.DataFrame(data, columns=[
-        "open_time", "open", "high", "low", "close", "volume",
-        "_1", "_2", "_3", "_4", "_5", "_6"
-    ])
-    df = df[["open_time", "open", "high", "low", "close", "volume"]]
+    df = pd.DataFrame(data)[[0, 1, 2, 3, 4, 5]]
+    df.columns = ["open_time", "open", "high", "low", "close", "volume"]
+
     df["timestamp"] = pd.to_datetime(df["open_time"], unit="ms")
     df["symbol"] = symbol
     df["interval"] = interval
