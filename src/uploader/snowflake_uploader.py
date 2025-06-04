@@ -25,7 +25,7 @@ def load_parquet_to_snowflake(
             copy_sql = f"""
             COPY INTO {table_name}
             FROM @{stage_name}/{s3_key}
-            FILE_FORMAT = (FORMAT_NAME = {file_format})
+            FILE_FORMAT = (FORMAT_NAME = '{file_format}')
             MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
             """
             cursor.execute(copy_sql)

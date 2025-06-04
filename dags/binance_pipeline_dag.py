@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, UTC
 import pandas as pd
 from airflow import DAG
 from airflow.decorators import task
+import time
 
 # 경로 문제 방지
 sys.path.append('/opt/airflow/src')  # Docker 환경 기준
@@ -38,6 +39,8 @@ with DAG(
 
     @task()
     def fetch() -> str:
+        time.sleep(10)
+
         start, end = get_time_range(INTERVAL)
         df = fetch_ohlcv(SYMBOL, INTERVAL, start, end)
         return df.to_json()
@@ -58,7 +61,7 @@ with DAG(
 
     @task()
     def upload_snowflake(s3_key_ts: str):
-        s3_path = f"ohlcv/{INTERVAL}/{SYMBOL}/{s3_key_ts}.parquet"
+        s3_path = f"{INTERVAL}/{SYMBOL}/{s3_key_ts}.parquet"
         load_to_snowflake(s3_path, table='ohlcv')
 
     # DAG 연결
