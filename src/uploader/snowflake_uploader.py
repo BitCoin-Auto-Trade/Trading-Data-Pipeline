@@ -35,3 +35,18 @@ def load_parquet_to_snowflake(
         raise
     finally:
         conn.close()
+
+
+def load_to_snowflake(s3_path: str, table: str) -> None:
+    stage = os.getenv("SNOWFLAKE_STAGE")
+    file_format = os.getenv("SNOWFLAKE_FILE_FORMAT")
+
+    if not stage or not file_format:
+        raise RuntimeError("SNOWFLAKE_STAGE 또는 SNOWFLAKE_FILE_FORMAT 환경변수가 없음")
+
+    load_parquet_to_snowflake(
+        s3_key=s3_path,
+        table_name=table,
+        stage_name=stage,
+        file_format=file_format
+    )
