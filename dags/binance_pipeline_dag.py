@@ -1,71 +1,68 @@
-import sys
 from datetime import datetime, timedelta, UTC
 import pandas as pd
 from airflow import DAG
 from airflow.decorators import task
-import time
+from airflow.utils.task_group import TaskGroup
 
-# 경로 문제 방지
-sys.path.append('/opt/airflow/src')  # Docker 환경 기준
+import sys
+sys.path.append('/opt/airflow/src')
 
 from collector.binance_client import fetch_ohlcv
 from formatter.ohlcv_formatter import format_ohlcv
 from uploader.s3_uploader import upload_to_s3
 from uploader.snowflake_uploader import load_to_snowflake
 
-SYMBOL = 'BTCUSDT'
-INTERVAL = '15m'
+SYMBOLS = ['BTCUSDT', 'ETHUSDT']
 
 
 def get_time_range(interval: str) -> tuple[datetime, datetime]:
-    now = datetime.now(UTC)
-    delta = {'15m': 15, '1h': 60}.get(interval, 15)
-    return now - timedelta(minutes=delta), now
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    delta_min = {'1m': 1, '15m': 15, '1h': 60}[interval]
+    end = now - timedelta(minutes=now.minute % delta_min)
+    start = end - timedelta(minutes=delta_min)
+    return start, end
 
 
-with DAG(
-    dag_id='binance_ohlcv_pipeline',
-    start_date=datetime.now(UTC) - timedelta(minutes=15),
-    schedule_interval='*/15 * * * *',
-    catchup=False,
-    default_args={
-        'owner': 'airflow',
-        'retries': 1,
-        'retry_delay': timedelta(minutes=3),
-    },
-    description='바이낸스 OHLCV 수집 및 적재 파이프라인',
-    tags=['binance', 'ohlcv'],
-) as dag:
+def create_ohlcv_dag(interval: str, schedule: str):
+    dag_id = f"ohlcv_{interval}_pipeline"
 
-    @task()
-    def fetch() -> str:
-        time.sleep(10)
+    with DAG(
+        dag_id=dag_id,
+        start_date=datetime(2024, 1, 1, tzinfo=UTC),
+        schedule_interval=schedule,
+        catchup=False,
+        default_args={
+            'owner': 'airflow',
+            'retries': 1,
+            'retry_delay': timedelta(minutes=2),
+        },
+        tags=['binance', 'ohlcv'],
+        max_active_tasks=4,
+    ) as dag:
 
-        start, end = get_time_range(INTERVAL)
-        df = fetch_ohlcv(SYMBOL, INTERVAL, start, end)
-        return df.to_json()
+        @task()
+        def process(symbol: str):
+            start, end = get_time_range(interval)
+            df = fetch_ohlcv(symbol, interval, start, end)
+            if df.empty:
+                return 'skip'
 
-    @task()
-    def format(raw_json: str) -> str:
-        df = pd.read_json(raw_json)
-        cleaned = format_ohlcv(df)
-        return cleaned.to_json()
+            df = format_ohlcv(df, symbol, interval)
+            ts = pd.to_datetime(df['timestamp'].max())
+            s3_key = ts.strftime('%Y-%m-%d_%H-%M')
+            upload_to_s3(df, symbol, interval, ts, s3_key)
+            s3_path = f"{interval}/{symbol}/{s3_key}.parquet"
+            load_to_snowflake(s3_path, table='trading_db.public.ohlcv')
+            return 'success'
 
-    @task()
-    def upload_s3(cleaned_json: str) -> str:
-        df = pd.read_json(cleaned_json)
-        timestamp = df['timestamp'].max()
-        ts = pd.to_datetime(timestamp)
-        upload_to_s3(df, SYMBOL, INTERVAL, ts)
-        return ts.strftime('%Y-%m-%d_%H')
+        for symbol in SYMBOLS:
+            with TaskGroup(group_id=f'{symbol}') as tg:
+                process(symbol)
 
-    @task()
-    def upload_snowflake(s3_key_ts: str):
-        s3_path = f"{INTERVAL}/{SYMBOL}/{s3_key_ts}.parquet"
-        load_to_snowflake(s3_path, table='ohlcv')
+        return dag
 
-    # DAG 연결
-    raw = fetch()
-    formatted = format(raw)
-    s3_key = upload_s3(formatted)
-    upload_snowflake(s3_key)
+
+# DAG 3개 등록
+globals()['ohlcv_1m_pipeline'] = create_ohlcv_dag('1m', '* * * * *')
+globals()['ohlcv_15m_pipeline'] = create_ohlcv_dag('15m', '*/15 * * * *')
+globals()['ohlcv_1h_pipeline'] = create_ohlcv_dag('1h', '0 * * * *')

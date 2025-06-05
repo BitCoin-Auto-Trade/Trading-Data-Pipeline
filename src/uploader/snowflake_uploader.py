@@ -28,8 +28,12 @@ def load_parquet_to_snowflake(
             FILE_FORMAT = (FORMAT_NAME = '{file_format}')
             MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
             """
+            logger.info(f"[COPY SQL] {copy_sql.strip()}")
             cursor.execute(copy_sql)
-            logger.info(f"Loaded {s3_key} into Snowflake table {table_name}")
+
+            result = cursor.fetchall()
+            for row in result:
+                logger.info(f"[COPY RESULT] {row}")
     except Exception as e:
         logger.error(f"Snowflake COPY INTO failed: {e}")
         raise
