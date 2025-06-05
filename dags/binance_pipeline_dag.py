@@ -3,17 +3,17 @@ import pandas as pd
 from airflow import DAG
 from airflow.decorators import task
 from airflow.utils.task_group import TaskGroup
-
+from pathlib import Path
 import sys
+
 sys.path.append('/opt/airflow/src')
 
 from collector.binance_client import fetch_ohlcv
-from formatter.ohlcv_formatter import format_ohlcv
+from formatter.ohlcv_formatter import format_ohlcv, save_to_parquet
 from uploader.s3_uploader import upload_to_s3
 from uploader.snowflake_uploader import load_to_snowflake
 
 SYMBOLS = ['BTCUSDT', 'ETHUSDT']
-
 
 def get_time_range(interval: str) -> tuple[datetime, datetime]:
     now = datetime.now(UTC).replace(second=0, microsecond=0)
@@ -21,7 +21,6 @@ def get_time_range(interval: str) -> tuple[datetime, datetime]:
     end = now - timedelta(minutes=now.minute % delta_min)
     start = end - timedelta(minutes=delta_min)
     return start, end
-
 
 def create_ohlcv_dag(interval: str, schedule: str):
     dag_id = f"ohlcv_{interval}_pipeline"
@@ -50,9 +49,16 @@ def create_ohlcv_dag(interval: str, schedule: str):
             df = format_ohlcv(df, symbol, interval)
             ts = pd.to_datetime(df['timestamp'].max())
             s3_key = ts.strftime('%Y-%m-%d_%H-%M')
+
+            # 저장 경로 생성
+            tmp_path = Path(f"/opt/airflow/tmp/{symbol}_{interval}_{s3_key}.parquet")
+            save_to_parquet(df, tmp_path)
+
+            # S3 업로드 및 Snowflake 적재
             upload_to_s3(df, symbol, interval, ts, s3_key)
             s3_path = f"{interval}/{symbol}/{s3_key}.parquet"
             load_to_snowflake(s3_path, table='trading_db.public.ohlcv')
+
             return 'success'
 
         for symbol in SYMBOLS:
@@ -60,7 +66,6 @@ def create_ohlcv_dag(interval: str, schedule: str):
                 process(symbol)
 
         return dag
-
 
 # DAG 3개 등록
 globals()['ohlcv_1m_pipeline'] = create_ohlcv_dag('1m', '* * * * *')

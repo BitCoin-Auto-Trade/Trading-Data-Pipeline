@@ -30,6 +30,7 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
+      - ./tmp:/opt/airflow/tmp
     entrypoint: >
       bash -c "
         airflow db migrate &&
@@ -59,6 +60,7 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
+      - ./tmp:/opt/airflow/tmp
     command: webserver
 
   airflow-scheduler:
@@ -80,6 +82,7 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
+      - ./tmp:/opt/airflow/tmp
     command: scheduler
 
   airflow-worker:
@@ -101,6 +104,7 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
+      - ./tmp:/opt/airflow/tmp
     command: celery worker
 
 volumes:

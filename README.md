@@ -35,10 +35,10 @@
 - [X] pandas DataFrame 반환
 
 #### 2. 데이터 포맷 정제
-- [ ] UTC 기준 정렬
-- [ ] 중복 제거
-- [ ] 컬럼 통일: `timestamp, open, high, low, close, volume, symbol, interval`
-- [ ] CSV 또는 Parquet 저장 기능
+- [X] UTC 기준 정렬
+- [X] 중복 제거
+- [X] 컬럼 통일: `timestamp, open, high, low, close, volume, symbol, interval`
+- [X] Parquet 저장 기능
 
 #### 3. S3 업로드
 - [X] boto3 기반 업로드 함수 구현

@@ -21,3 +21,4 @@ test-results/
 *.log
 # 문서화 결과
 docs/_build/
+tmp/
