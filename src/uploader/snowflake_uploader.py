@@ -36,7 +36,6 @@ def load_parquet_to_snowflake(
                 logger.info(f"[COPY RESULT] {row}")
     except Exception as e:
         logger.error(f"Snowflake COPY INTO failed: {e}")
-        raise
     finally:
         conn.close()
 

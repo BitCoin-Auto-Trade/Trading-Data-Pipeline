@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from typing import Literal
+from collector.retry import retry
 import requests
 import pandas as pd
 
@@ -8,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 Interval = Literal["15m", "1h"]
 
+@retry(max_attempts=5, delay=2)
 def fetch_ohlcv(symbol: str, interval: Interval, start_time: datetime, end_time: datetime) -> pd.DataFrame:
     url = "https://fapi.binance.com/fapi/v1/klines"
     params = {

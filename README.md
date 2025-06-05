@@ -60,9 +60,9 @@
 ### 중간 우선
 
 #### 6. 에러 핸들링 / 재시도
-- [ ] Binance API 실패 시 최대 5회 재시도
-- [ ] S3 업로드 실패 처리
-- [ ] Snowflake COPY 실패 시 로그 남기고 skip
+- [X] Binance API 실패 시 최대 5회 재시도
+- [X] S3 업로드 실패 처리
+- [X] Snowflake COPY 실패 시 로그 남기고 skip
 
 #### 7. 설정 분리
 - [X] `.env` 또는 `config.yaml` 파일 사용

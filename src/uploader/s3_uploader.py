@@ -10,13 +10,17 @@ logger = logging.getLogger(__name__)
 s3 = boto3.client("s3")
 
 
-def upload_parquet_bytes(raw_bytes: bytes, bucket: str, s3_key: str) -> None:
-    try:
-        s3.put_object(Bucket=bucket, Key=s3_key, Body=raw_bytes)
-        logger.info(f"Uploaded to s3://{bucket}/{s3_key}")
-    except (BotoCoreError, ClientError) as e:
-        logger.error(f"S3 upload failed: {e}")
-        raise
+def upload_parquet_bytes(raw_bytes: bytes, bucket: str, s3_key: str, max_attempts=5) -> None:
+    for attempt in range(1, max_attempts + 1):
+        try:
+            s3.put_object(Bucket=bucket, Key=s3_key, Body=raw_bytes)
+            logger.info(f"Uploaded to s3://{bucket}/{s3_key}")
+            return
+        except (BotoCoreError, ClientError) as e:
+            logger.warning(f"S3 upload failed (attempt {attempt}): {e}")
+            if attempt == max_attempts:
+                logger.error(f"S3 upload failed after {max_attempts} attempts")
+                raise
 
 
 def upload_to_s3(df: pd.DataFrame, symbol: str, interval: str, timestamp: datetime, s3_key: str) -> None:
