@@ -69,8 +69,8 @@
 - [X] Binance / AWS / Snowflake 키 관리
 
 #### 8. 로깅 시스템
-- [ ] task 단위 로그 기록 (INFO, ERROR)
-- [ ] Airflow 로그 연동
+- [X] task 단위 로그 기록 (INFO, ERROR)
+- [X] Airflow 로그 연동
 
 ---
 
