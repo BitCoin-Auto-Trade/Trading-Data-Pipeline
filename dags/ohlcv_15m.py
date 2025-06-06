@@ -17,7 +17,7 @@ INTERVAL = '15m'
 DELTA = 15
 
 with DAG(
-    dag_id="ohlcv_15m_aggregate_pipeline",
+    dag_id="ohlcv_15m_pipeline",
     start_date=datetime(2024, 1, 1, tzinfo=UTC),
     schedule_interval="*/15 * * * *",
     catchup=False,
