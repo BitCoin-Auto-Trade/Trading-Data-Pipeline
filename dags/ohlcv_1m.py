@@ -8,9 +8,14 @@ import sys
 sys.path.append('/opt/airflow/src')
 
 from collector.binance_client import fetch_ohlcv
-from formatter.ohlcv_formatter import format_ohlcv, save_to_parquet
+from formatter.ohlcv_formatter import format_ohlcv
 from uploader.s3_uploader import upload_to_s3
 from common.ohlcv_utils import SYMBOLS, now_range_1m, get_logger
+
+
+def get_slot_index(ts: datetime) -> int:
+    total_minutes = ts.hour * 60 + ts.minute
+    return (total_minutes % 60) + 1  # 1~60
 
 with DAG(
     dag_id="ohlcv_1m_pipeline",
@@ -35,13 +40,15 @@ with DAG(
                 logger.info("No 1m data. Skip.")
                 return
 
-            df = format_ohlcv(df, symbol, '1m')
+            df = format_ohlcv(df, symbol)
             ts = df['timestamp'].max()
-            s3_key = ts.strftime('%Y-%m-%d_%H-%M')
-            tmp_path = Path(f"/opt/airflow/tmp/{symbol}_1m_{s3_key}.parquet")
-            save_to_parquet(df, tmp_path)
+
+            slot = get_slot_index(ts)
+            s3_key = f"{slot}.parquet"
+
             upload_to_s3(df, symbol, '1m', ts, s3_key)
-            logger.info("1m uploaded to S3")
+
+            logger.info(f"1m uploaded to S3: slot {slot}")
         except Exception as e:
             logger.error(f"1m task failed: {e}")
 

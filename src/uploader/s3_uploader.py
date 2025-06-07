@@ -25,7 +25,7 @@ def upload_parquet_bytes(raw_bytes: bytes, bucket: str, s3_key: str, max_attempt
 
 def upload_to_s3(df: pd.DataFrame, symbol: str, interval: str, timestamp: datetime, s3_key: str) -> None:
     df = df[[
-        "timestamp", "open", "high", "low", "close", "volume", "symbol", "interval"
+        "timestamp", "open", "high", "low", "close", "volume", "symbol"
     ]]
 
     df["timestamp"] = pd.to_datetime(df["timestamp"]).astype(str)
@@ -35,13 +35,12 @@ def upload_to_s3(df: pd.DataFrame, symbol: str, interval: str, timestamp: dateti
     df["close"] = df["close"].astype(float)
     df["volume"] = df["volume"].astype(float)
     df["symbol"] = df["symbol"].astype(str)
-    df["interval"] = df["interval"].astype(str)
 
     buffer = BytesIO()
     df.to_parquet(buffer, index=False)
     buffer.seek(0)
 
-    s3_key = f"ohlcv/{interval}/{symbol}/{s3_key}.parquet"
+    s3_key = f"ohlcv/{interval}/{symbol}/{s3_key}"
     bucket = os.getenv("AWS_S3_BUCKET")
 
     if not bucket:

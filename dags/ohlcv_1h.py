@@ -9,9 +9,10 @@ import sys
 sys.path.append('/opt/airflow/src')
 
 from collector.binance_client import fetch_ohlcv
-from formatter.ohlcv_formatter import format_ohlcv, save_to_parquet
+from formatter.ohlcv_formatter import format_ohlcv
 from uploader.s3_uploader import upload_to_s3
 from common.ohlcv_utils import SYMBOLS, get_time_range, get_logger
+from uploader.snowflake_uploader import load_to_snowflake
 
 INTERVAL = '1h'
 DELTA = 60
@@ -19,7 +20,7 @@ DELTA = 60
 with DAG(
     dag_id="ohlcv_1h_pipeline",
     start_date=datetime(2024, 1, 1, tzinfo=UTC),
-    schedule_interval="0 * * * *",
+    schedule_interval="0 * * * *",  # 매 정각마다 실행
     catchup=False,
     default_args={
         'owner': 'airflow',
@@ -36,11 +37,16 @@ with DAG(
             start, end = get_time_range(DELTA)
             df = fetch_ohlcv(symbol, '1m', start, end)
             if df.empty:
-                logger.info("No 1m data to aggregate")
+                logger.info("1h 데이터가 없습니다. 1m 데이터를 가져오지 못했습니다.")
                 return
 
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
             df.set_index('timestamp', inplace=True)
+
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            df = df.dropna(subset=['open', 'high', 'low', 'close', 'volume'])
 
             ohlcv = df.resample(INTERVAL).agg({
                 'open': 'first',
@@ -50,13 +56,28 @@ with DAG(
                 'volume': 'sum'
             }).dropna().reset_index()
 
-            ohlcv = format_ohlcv(ohlcv, symbol, INTERVAL)
-            ts = ohlcv['timestamp'].max()
-            s3_key = ts.strftime('%Y-%m-%d_%H-%M')
-            tmp_path = Path(f"/opt/airflow/tmp/{symbol}_{INTERVAL}_{s3_key}.parquet")
-            save_to_parquet(ohlcv, tmp_path)
+            if ohlcv.empty:
+                logger.info("저장할 데이터가 없습니다.")
+                return
+
+            ohlcv = format_ohlcv(ohlcv, symbol)
+            ts = pd.to_datetime(ohlcv['timestamp'].max(), errors='coerce')
+            if pd.isnull(ts):
+                logger.error("Aggregation 후 유효하지 않은 타임스탬프입니다.")
+                return
+
+            s3_key = "latest.parquet"
+ 
             upload_to_s3(ohlcv, symbol, INTERVAL, ts, s3_key)
-            logger.info(f"{INTERVAL} uploaded to S3")
+            logger.info(f"{INTERVAL} uploaded to S3: {s3_key}")
+
+
+            s3_path = f"{INTERVAL}/{symbol}/{s3_key}"
+            table_name = f"ohlcv_{INTERVAL}"
+            logger.info(f"Loading to Snowflake: {s3_path} -> {table_name}")
+            load_to_snowflake(s3_path=s3_path, table=table_name)
+            logger.info("Snowflake load 완료")
+
         except Exception as e:
             logger.error(f"{INTERVAL} task failed: {e}")
 
