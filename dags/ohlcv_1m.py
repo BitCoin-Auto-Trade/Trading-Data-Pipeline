@@ -7,15 +7,9 @@ import sys
 sys.path.append('/opt/airflow/src')
 
 from collector.binance_client import fetch_ohlcv
-from formatter.ohlcv_formatter import format_ohlcv
-from uploader.s3_uploader import upload_to_s3
-from common.ohlcv_utils import SYMBOLS, now_range_1m, get_logger
-from uploader.redis_uploader import upload_to_redis
-
-
-def get_slot_index(ts: datetime) -> int:
-    total_minutes = ts.hour * 60 + ts.minute
-    return (total_minutes % 60) + 1  # 1~60
+from common.ohlcv_config import SYMBOLS, now_range_1m
+from common.ohlcv_utils import process_ohlcv_task
+from utils.logger import get_logger
 
 with DAG(
     dag_id="ohlcv_1m_pipeline",
@@ -23,35 +17,25 @@ with DAG(
     schedule_interval="* * * * *",
     catchup=False,
     default_args={
-        'owner': 'airflow',
-        'retries': 1,
-        'retry_delay': timedelta(minutes=1),
+        "owner": "airflow",
+        "retries": 1,
+        "retry_delay": timedelta(minutes=1),
     },
-    tags=['ohlcv', '1m'],
+    tags=["ohlcv", "1m"],
 ) as dag:
 
     @task()
     def process(symbol: str):
         logger = get_logger(f"1m-{symbol}")
-        try:
-            start, end = now_range_1m()
-            df = fetch_ohlcv(symbol, '1m', start, end)
-            if df.empty:
-                logger.info("No 1m data. Skip.")
-                return
-
-            df = format_ohlcv(df, symbol)
-            ts = df['timestamp'].max()
-
-            slot = get_slot_index(ts)
-            s3_key = f"{slot}.parquet"
-
-            upload_to_s3(df, symbol, '1m', ts, s3_key)
-            upload_to_redis(df, symbol)
-
-            logger.info(f"1m uploaded to S3: slot {slot}")
-        except Exception as e:
-            logger.error(f"1m task failed: {e}")
+        process_ohlcv_task(
+            symbol=symbol,
+            interval="1m",
+            delta=1,
+            logger=logger,
+            fetch_func=fetch_ohlcv,
+            get_range_func=now_range_1m,
+            upload_redis=True,
+        )
 
     for symbol in SYMBOLS:
         with TaskGroup(group_id=symbol):
