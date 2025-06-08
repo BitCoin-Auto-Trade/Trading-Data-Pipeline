@@ -55,7 +55,7 @@ platformdirs==4.3.8
     # via snowflake-connector-python
 pluggy==1.6.0
     # via pytest
-pyarrow<19.0.0
+pyarrow==20.0.0
     # via -r requirements.in
 pycparser==2.22
     # via cffi
@@ -75,6 +75,8 @@ pytz==2025.2
     # via
     #   pandas
     #   snowflake-connector-python
+redis==6.2.0
+    # via -r requirements.in
 requests==2.32.3
     # via
     #   -r requirements.in

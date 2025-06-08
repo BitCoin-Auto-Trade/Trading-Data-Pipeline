@@ -6,3 +6,4 @@ pyarrow
 requests
 python-dotenv
 pytest
+redis
