@@ -1,6 +1,7 @@
 import pandas as pd
 
 def clean_raw_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
+    """timestamp랑 OHLCV 컬럼들 타입 정리하고 결측치 제거"""
     if 'timestamp' not in df.columns:
         raise ValueError("Missing 'timestamp' column")
 
@@ -15,8 +16,10 @@ def clean_raw_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def format_ohlcv(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+    """timestamp 기준 정렬하고 symbol 컬럼 붙이고 중복 제거"""
     df = df.reset_index(drop=True)
     df = df.sort_values("timestamp")
     df = df.assign(symbol=symbol)
     df = df.drop_duplicates(subset=["timestamp", "symbol"])
     return df[["timestamp", "open", "high", "low", "close", "volume", "symbol"]]
+

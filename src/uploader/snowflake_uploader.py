@@ -28,12 +28,32 @@ def load_parquet_to_snowflake(
         owns_connection = True
 
     try:
-        sql = (
-            f"COPY INTO {table_name} "
-            f"FROM @{stage_name}/{s3_key} "
-            f"FILE_FORMAT = (FORMAT_NAME = '{file_format}') "
-            f"MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE"
-        )
+        sql = f"""
+            MERGE INTO {table_name} AS target
+            USING (
+            SELECT 
+                $1:timestamp::TIMESTAMP AS timestamp,
+                $1:open::FLOAT AS open,
+                $1:high::FLOAT AS high,
+                $1:low::FLOAT AS low,
+                $1:close::FLOAT AS close,
+                $1:volume::FLOAT AS volume,
+                $1:symbol::STRING AS symbol
+            FROM @{stage_name}/{s3_key} (FILE_FORMAT => '{file_format}')
+            ) AS source
+            ON target.timestamp = source.timestamp AND target.symbol = source.symbol
+            WHEN MATCHED THEN UPDATE SET
+            open = source.open,
+            high = source.high,
+            low = source.low,
+            close = source.close,
+            volume = source.volume
+            WHEN NOT MATCHED THEN INSERT (
+            timestamp, open, high, low, close, volume, symbol
+            ) VALUES (
+            source.timestamp, source.open, source.high, source.low, source.close, source.volume, source.symbol
+            )
+            """
         logger.info(f"[Snowflake COPY] {sql}")
 
         with conn.cursor() as cursor:

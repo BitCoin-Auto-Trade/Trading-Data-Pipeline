@@ -12,6 +12,7 @@ s3 = boto3.client("s3")
 
 
 def get_s3_bucket() -> str:
+    """환경변수에서 S3 버킷 이름을 가져옴"""
     bucket = os.getenv("AWS_S3_BUCKET")
     if not bucket:
         raise RuntimeError("환경변수 AWS_S3_BUCKET가 설정되지 않았음")
@@ -19,6 +20,7 @@ def get_s3_bucket() -> str:
 
 
 def upload_parquet_bytes(raw_bytes: bytes, bucket: str, s3_key: str, max_attempts: int = 5) -> None:
+    """"S3에 Parquet 파일을 바이트 스트림으로 업로드"""
     for attempt in range(1, max_attempts + 1):
         try:
             s3.put_object(Bucket=bucket, Key=s3_key, Body=raw_bytes)
@@ -32,7 +34,7 @@ def upload_parquet_bytes(raw_bytes: bytes, bucket: str, s3_key: str, max_attempt
 
 
 def upload_to_s3(df: pd.DataFrame, symbol: str, interval: str, ts: datetime, s3_key: str) -> None:
-    
+    """S3에 Parquet 파일로 업로드"""
     if df.empty:
         logger.warning(f"[upload_to_s3] Empty DataFrame for {symbol}-{interval}, skip upload")
         return
@@ -44,6 +46,8 @@ def upload_to_s3(df: pd.DataFrame, symbol: str, interval: str, ts: datetime, s3_
 
     df = df[required_columns].copy()
     df = df.sort_values("timestamp")
+
+    df = df.drop_duplicates(subset=["timestamp", "symbol"], keep="last")
 
     df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
     df["symbol"] = df["symbol"].astype(str)
