@@ -10,7 +10,6 @@ import sys
 sys.path.append("/opt/airflow/src")
 
 from collector.binance_client import fetch_ohlcv
-from uploader.s3_uploader import upload_to_s3
 from uploader.redis_uploader import upload_to_redis
 from formatter.ohlcv_formatter import clean_raw_ohlcv, format_ohlcv
 
@@ -55,11 +54,6 @@ with DAG(
         return format_ohlcv(df, symbol)
 
     @task()
-    def upload_s3(df: pd.DataFrame, symbol: str, slot: int, timestamp: datetime):
-        key = f"{slot:02d}.parquet"
-        upload_to_s3(df, symbol, "1m", timestamp, key)
-
-    @task()
     def upload_redis(df: pd.DataFrame, symbol: str):
         upload_to_redis(df, symbol)
 
@@ -69,7 +63,6 @@ with DAG(
             df_raw = fetch.override(task_id=f"{symbol}_fetch")(symbol, range_dict["start"], range_dict["end"])
             df_clean = clean.override(task_id=f"{symbol}_clean")(df_raw)
             df_fmt = format_df.override(task_id=f"{symbol}_format")(df_clean, symbol)
-            upload_s3.override(task_id=f"{symbol}_s3")(df_fmt, symbol, range_dict["slot"], range_dict["end"])
             upload_redis.override(task_id=f"{symbol}_redis")(df_fmt, symbol)
         return tg
 
