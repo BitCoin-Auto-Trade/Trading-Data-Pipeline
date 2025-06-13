@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.decorators import task
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC, timezone
 import pandas as pd
 import sys
 
@@ -12,15 +12,17 @@ from uploader.s3_uploader import upload_to_s3
 from uploader.snowflake_uploader import load_to_snowflake
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+UTC = timezone.utc
 CONFIG = {
     "15m": {"count": 300, "table": "ohlcv_15m"},
     "1h": {"count": 300, "table": "ohlcv_1h"},
 }
 
+
 with DAG(
-    dag_id="initialize_snowflake_ohlcv",
+    dag_id="init_15m_1h",
     start_date=datetime(2024, 1, 1),
-    schedule=None,  # 수동 실행 전용
+    schedule=None,
     catchup=False,
     tags=["init", "ohlcv", "snowflake"],
 ) as dag:
@@ -31,7 +33,7 @@ with DAG(
         count = config["count"]
         delta = {"15m": timedelta(minutes=15), "1h": timedelta(hours=1)}[interval]
 
-        end = datetime.utcnow().replace(second=0, microsecond=0)
+        end = datetime.now(UTC).replace(second=0, microsecond=0)
         start = end - count * delta
 
         df = fetch_ohlcv(symbol, interval, start, end)

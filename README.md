@@ -1,76 +1,81 @@
-# Trading-Data\_Pipeline Repository
+# Trading-Data_Pipeline Repository
 
-데이터 수집, 가공, 적재 + 실시간 판단 후보 도출까지 담당
+Binance 선물 데이터 수집 → 실시간 판단용 Redis 저장 → 분석용 Snowflake 저장 처리
 
 ## 개요
 
-**데이터 소스**: Binance Futures API
-**데이터 주기**: 1분, 15분, 1시간 봉
-**저장소**: AWS S3, Redis (실시간 판단용), Snowflake (정밀 추론용)
-**실행 주기**: Airflow DAG 기준, 1분 / 15분 / 1시간 스케줄링
+**데이터 소스**: Binance Futures API  
+**주기**: 1분, 15분, 1시간 봉  
+**저장소**: Redis (실시간 전략 판단용), Snowflake (AI 판단 및 분석용)  
+**스케줄링**: Apache Airflow DAG (1분 / 15분 / 1시간)
 
-## 시스템 흐름
+## Redis 처리 구조 (1분봉)
 
-1. Binance API로 OHLCV 수집 → Parquet 변환 → S3 저장
-2. 1분봉은 Redis에 저장 (슬롯 기반: 15개) → 실시간 판단용
-3. 15분/1시간 데이터는 Snowflake에 COPY INTO로 적재
-4. Redis에 저장된 1분봉 기반으로 실시간 지표 계산 및 전략 판단
-5. Snowflake 데이터는 후속 AI 판단에 사용 가능
+- 키: `ohlcv:{symbol}:1m`
+- 값: JSON 문자열 60개 (최신순)
+- 형식: `LPUSH`로 넣고 `LTRIM`으로 60개 유지
+- 지표 판단은 core 레포에서 처리함
+
+---
+
+## Snowflake 처리 구조 (15분, 1시간봉)
+
+- 수집한 OHLCV를 Parquet 저장
+- S3에 저장된 파일 → COPY INTO로 Snowflake 적재
+- Redis에 별도 저장 안함
+
+---
 
 ## 주요 기능
 
 | 기능           | 설명                                                       |
-| ------------ | -------------------------------------------------------- |
-| 바이낸스 데이터 수집  | 심볼, 봉 간격에 따른 OHLCV 수집                                    |
-| Parquet 변환   | pandas 기반 데이터 포맷 변환                                      |
-| S3 업로드       | 경로 기반 버킷 구조로 저장 (interval/symbol/yyyyMMdd\_HHmm.parquet) |
-| Redis 저장     | 1분봉 15개 유지 (slot 인덱스 기반 덮어쓰기)                            |
-| Snowflake 적재 | 15m, 1h 주기로 S3 → COPY INTO 수행                            |
-| Airflow 스케줄링 | DAG을 통해 주기적 실행 관리                                        |
-
-## 사용 기술 스택
-
-| 구분         | 도구 / 라이브러리              |
-| ---------- | ----------------------- |
-| 스케줄링       | Apache Airflow          |
-| 데이터 처리     | pandas, pyarrow         |
-| 클라우드 스토리지  | AWS S3 (boto3)          |
-| 실시간 저장소    | Redis                   |
-| 정밀 추론/AI   | Snowflake + Snowpark ML |
-| 전략 판단 / 실행 | FastAPI, gRPC 등         |
-
-## TODO
-
-### ✅ 최우선
-
-* [x] Binance API로 1m, 15m, 1h OHLCV 수집
-* [x] 심볼/간격/시간 파라미터 처리
-* [x] DataFrame 정제 (정렬, 중복 제거, 컬럼 통일)
-* [x] Parquet 저장
-* [x] S3 업로드 (`ohlcv/{interval}/{symbol}/{yyyyMMdd_HHmm}.parquet`)
-* [x] Redis에 최근 15개 1분봉 저장 (slot 기반)
-* [x] Snowflake COPY INTO 정상 작동 확인
-* [x] Airflow DAG 구성 (fetch → format → upload → insert)
-* [x] DAG 주기 설정 (1m/15m/1h)
+|----------------|------------------------------------------------------------|
+| Binance 수집     | 심볼/간격별 OHLCV 수집                                      |
+| Parquet 변환    | pandas → pyarrow 기반 parquet 포맷                         |
+| Redis 저장       | 1분봉만 저장. 60개만 유지되도록 LPUSH + LTRIM              |
+| S3 업로드        | 15분/1시간 봉만 저장. 경로: `ohlcv/{interval}/{symbol}/{yyyyMMdd_HHmm}.parquet` |
+| Snowflake 적재   | COPY INTO로 적재                                           |
+| Airflow DAG     | 주기적 스케줄링 및 분기 처리                                |
 
 ---
 
-### 🟡 중간 우선
+## 기술 스택
 
-* [ ] Redis 기반 지표 판단 로직 (RSI, EMA, MACD 등)
-* [ ] 판단 모듈화 및 전략별 분리
-* [ ] Kafka 메시지 발행 연동 (후보 발생 시)
-* [ ] Snowflake 기반 inference 구조 설계 확정
-* [ ] AI 판단 후 매수/매도 결정 → 주문 시스템 연동
-* [ ] `.env` / `config.yaml` 설정 분리 완료
+| 분류          | 사용 기술                           |
+|---------------|-------------------------------------|
+| 수집          | Binance API, requests               |
+| 데이터 가공    | pandas, pyarrow                    |
+| 실시간 저장소 | Redis                               |
+| 클라우드 저장 | AWS S3 (boto3)                      |
+| 정밀 분석용    | Snowflake + COPY INTO              |
+| 스케줄링      | Apache Airflow (DAG, TaskGroup 등) |
+
+---
+
+## TODO 리스트
+
+### ✅ 완료 항목
+
+- [x] 1m, 15m, 1h OHLCV 수집 DAG 구성
+- [x] Redis에 1분봉 60개 적재
+- [x] 15m, 1h S3 저장 + Snowflake COPY INTO 적재
+- [x] Airflow 스케줄링 분리 (1분, 15분, 1시간)
+- [x] 최초 시작시 데이터 대량 적재 DAG 구성
+
+---
+
+### 🟡 진행 예정
+
+- [ ] Core에서 15m, 1h, 1m Redis 기반 지표 계산 및 매수/매도 판단
+- [ ] core 판단용 Redis 지표 포맷 확정
+- [ ] Snowflake ML + FastAPI 판단 분리
+- [ ] 백테스트 연동 (backtest 레포)
 
 ---
 
 ### 🔵 후순위
 
-* [ ] S3 기반 전략 백테스트 (core/backtest 연동)
-* [ ] Snowflake 기반 분석/리포트 자동화
-* [ ] Redis → ClickHouse 마이그레이션 여부 검토
-* [ ] Redis TTL 기반 자동 만료 도입 고려
-* [ ] missing candle 감지
-* [ ] 거래량 0인 봉 필터링 (선택 적용)
+- [ ] Redis TTL 도입 (1m 봉 자동 만료)
+- [ ] missing candle 감지 DAG
+- [ ] 거래량 0봉 필터링 (선택적 적용)
+- [ ] ClickHouse로 마이그레이션 여부 검토

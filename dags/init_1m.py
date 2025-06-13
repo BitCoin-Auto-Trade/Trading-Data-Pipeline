@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.decorators import task
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
 import pandas as pd
 import sys
 
@@ -11,9 +11,10 @@ from formatter.ohlcv_formatter import clean_raw_ohlcv, format_ohlcv
 from uploader.redis_uploader import upload_to_redis
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+UTC = timezone.utc
 
 with DAG(
-    dag_id="initialize_redis_ohlcv_1m",
+    dag_id="init_1m",
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
@@ -22,7 +23,7 @@ with DAG(
 
     @task()
     def init_redis(symbol: str):
-        end = datetime.utcnow().replace(second=0, microsecond=0)
+        end = datetime.now(UTC).replace(second=0, microsecond=0)
         start = end - timedelta(minutes=60)
 
         df = fetch_ohlcv(symbol, "1m", start, end)
