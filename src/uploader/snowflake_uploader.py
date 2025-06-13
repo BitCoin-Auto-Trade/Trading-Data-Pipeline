@@ -2,6 +2,7 @@ import os
 import logging
 import snowflake.connector
 from typing import Optional
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
