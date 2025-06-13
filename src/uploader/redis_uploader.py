@@ -13,6 +13,7 @@ MAX_COUNTS = {
 TTL_SECONDS = 60 * 10  # 10분 TTL
 
 def upload_to_redis(df: pd.DataFrame, symbol: str) -> None:
+    """Redis에 OHLCV 데이터를 업로드"""
     if df.empty:
         logger.info(f"[Redis] {symbol}: 빈 데이터 생략")
         return

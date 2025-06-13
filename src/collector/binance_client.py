@@ -11,6 +11,7 @@ Interval = Literal["15m", "1h"]
 
 @retry(max_attempts=5, delay=2)
 def fetch_ohlcv(symbol: str, interval: Interval, start_time: datetime, end_time: datetime) -> pd.DataFrame:
+    """Binance API에서 OHLCV 데이터를 가져옵니다."""
     url = "https://fapi.binance.com/fapi/v1/klines"
     params = {
         "symbol": symbol,
