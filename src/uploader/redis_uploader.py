@@ -38,26 +38,3 @@ def upload_to_redis(df: pd.DataFrame, symbol: str) -> None:
         logger.info(f"[Redis] {symbol}: {len(deduped_df)}개 저장 완료")
     except Exception as e:
         logger.exception(f"[Redis] {symbol} 저장 실패: {e}")
-
-def upload_indicators_to_redis(df: pd.DataFrame, symbol: str, interval: str = "1m") -> None:
-    if df.empty:
-        logger.info(f"[Redis] {symbol}: 지표 데이터 없음 ({interval})")
-        return
-
-    key = f"indicator:{symbol}:{interval}"
-    max_count = MAX_COUNTS.get(interval, 60)
-
-    try:
-        new_rows = df.sort_values("timestamp").to_dict(orient="records")
-
-        pipe = redis_client.pipeline()
-        pipe.delete(key)
-        for row in new_rows[-max_count:]:
-            row["timestamp"] = pd.to_datetime(row["timestamp"]).isoformat()
-            pipe.rpush(key, json.dumps(row))
-        pipe.expire(key, TTL_SECONDS)
-        pipe.execute()
-
-        logger.info(f"[Redis] {symbol} 지표 {len(new_rows)}개 저장 완료 ({interval})")
-    except Exception as e:
-        logger.exception(f"[Redis] {symbol} 지표 저장 실패 ({interval}): {e}")
