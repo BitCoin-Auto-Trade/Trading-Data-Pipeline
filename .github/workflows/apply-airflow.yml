@@ -46,8 +46,8 @@ jobs:
             printf "%s\n" "${{ secrets.ENV }}" > .env
 
             # docker-compose 실행
-            docker-compose down || true
-            docker-compose up -d --build
+            docker compose down || true
+            docker compose up -d --build
 
       - name: Revoke GitHub IP from port 22
         if: always()
