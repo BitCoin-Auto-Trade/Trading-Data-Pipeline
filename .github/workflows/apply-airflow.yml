@@ -42,12 +42,12 @@ jobs:
             cd Trading-Data-Pipeline
             git pull origin main
 
-            # .env 생성 (줄바꿈 보존용)
+            # .env 생성
             printf "%s\n" "${{ secrets.ENV }}" > .env
 
             # docker-compose 실행
-            docker compose down || true
-            docker compose up -d --build
+            docker-compose down || true
+            docker-compose up -d --build
 
       - name: Revoke GitHub IP from port 22
         if: always()
