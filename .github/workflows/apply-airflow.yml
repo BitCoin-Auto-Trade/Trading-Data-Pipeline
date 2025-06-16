@@ -32,13 +32,33 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            set -e
-            if [ ! -d "/home/ubuntu/Trading-Data-Pipeline" ]; then
-              cd /home/ubuntu
+            set -ex
+            cd /home/ubuntu
+
+            # clone or pull repo
+            if [ ! -d "Trading-Data-Pipeline" ]; then
               git clone https://${{ secrets.TOKEN_FOR_REPO }}@github.com/BitCoin-Auto-Trade/Trading-Data-Pipeline.git
             fi
-            cd /home/ubuntu/Trading-Data-Pipeline
+            cd Trading-Data-Pipeline
             git pull origin main
+
+            # 1. .env 생성 (줄바꿈 보존용)
+            printf "%s\n" "${{ secrets.ENV }}" > .env
+
+            # 2. Python venv 세팅
+            python3 -m venv venv
+
+            # 3. pip-tools 설치 (venv 안에서 직접 실행)
+            ./venv/bin/pip install --upgrade pip
+            ./venv/bin/pip install pip-tools
+
+            # 4. requirements.in → requirements.txt
+            ./venv/bin/pip-compile requirements.in
+
+            # 5. requirements 설치
+            ./venv/bin/pip install -r requirements.txt
+
+            # 6. docker-compose 실행
             docker-compose down || true
             docker-compose up -d --build
 
