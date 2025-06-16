@@ -42,23 +42,10 @@ jobs:
             cd Trading-Data-Pipeline
             git pull origin main
 
-            # 1. .env 생성 (줄바꿈 보존용)
+            # .env 생성 (줄바꿈 보존용)
             printf "%s\n" "${{ secrets.ENV }}" > .env
 
-            # 2. Python venv 세팅
-            python3 -m venv venv
-
-            # 3. pip-tools 설치 (venv 안에서 직접 실행)
-            ./venv/bin/pip install --upgrade pip
-            ./venv/bin/pip install pip-tools
-
-            # 4. requirements.in → requirements.txt
-            ./venv/bin/pip-compile requirements.in
-
-            # 5. requirements 설치
-            ./venv/bin/pip install -r requirements.txt
-
-            # 6. docker-compose 실행
+            # docker-compose 실행
             docker-compose down || true
             docker-compose up -d --build
 
