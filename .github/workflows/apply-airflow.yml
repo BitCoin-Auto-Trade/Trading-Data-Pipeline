@@ -35,14 +35,11 @@ jobs:
             set -e
             if [ ! -d "/home/ubuntu/airflow-repo" ]; then
               cd /home/ubuntu
-              git clone git@github.com:BitCoin-Auto-Trade/Trading-Data-Pipeline.git airflow-repo
-            else
-              cd /home/ubuntu/airflow-repo
-              git pull origin main
+              git clone https://${{ secrets.TOKEN_FOR_REPO }}@github.com/BitCoin-Auto-Trade/airflow-repo.git
             fi
             cd /home/ubuntu/airflow-repo
             git pull origin main
-            docker-compose down
+            docker-compose down || true
             docker-compose up -d --build
 
       - name: Revoke GitHub IP from port 22
