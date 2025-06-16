@@ -8,6 +8,23 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Get current GitHub runner IP
+        id: ip
+        run: |
+          echo "ip=$(curl -s ifconfig.me)" >> $GITHUB_OUTPUT
+
+      - name: Allow GitHub IP on port 22
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.AIRFLOW_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ip }}/32 \
+            --region ap-northeast-2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
       - name: SSH Deploy Airflow
         uses: appleboy/ssh-action@master
         with:
@@ -15,7 +32,21 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
             cd /home/ubuntu/airflow-repo
             git pull origin main
             docker-compose down
             docker-compose up -d --build
+
+      - name: Revoke GitHub IP from port 22
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AIRFLOW_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ip }}/32 \
+            --region ap-northeast-2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
