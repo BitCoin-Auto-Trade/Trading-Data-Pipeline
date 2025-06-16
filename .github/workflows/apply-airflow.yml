@@ -33,6 +33,13 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
+            if [ ! -d "/home/ubuntu/airflow-repo" ]; then
+              cd /home/ubuntu
+              git clone git@github.com:BitCoin-Auto-Trade/Trading-Data-Pipeline.git airflow-repo
+            else
+              cd /home/ubuntu/airflow-repo
+              git pull origin main
+            fi
             cd /home/ubuntu/airflow-repo
             git pull origin main
             docker-compose down
