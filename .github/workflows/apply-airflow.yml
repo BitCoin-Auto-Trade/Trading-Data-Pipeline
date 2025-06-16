@@ -35,17 +35,14 @@ jobs:
             set -ex
             cd /home/ubuntu
 
-            # clone or pull repo
             if [ ! -d "Trading-Data-Pipeline" ]; then
               git clone https://${{ secrets.TOKEN_FOR_REPO }}@github.com/BitCoin-Auto-Trade/Trading-Data-Pipeline.git
             fi
             cd Trading-Data-Pipeline
             git pull origin main
 
-            # .env 생성
             printf "%s\n" "${{ secrets.ENV }}" > .env
 
-            # docker-compose 실행
             docker-compose down || true
             docker-compose up -d --build
 
