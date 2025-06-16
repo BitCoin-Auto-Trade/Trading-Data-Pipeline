@@ -22,3 +22,5 @@ test-results/
 # 문서화 결과
 docs/_build/
 tmp/
+
+.DS_Store
