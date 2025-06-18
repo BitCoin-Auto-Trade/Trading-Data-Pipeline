@@ -33,18 +33,15 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -ex
-            cd /home/ubuntu
-
-            if [ ! -d "Trading-Data-Pipeline" ]; then
-              git clone https://${{ secrets.TOKEN_FOR_REPO }}@github.com/BitCoin-Auto-Trade/Trading-Data-Pipeline.git
-            fi
-            cd Trading-Data-Pipeline
+            cd /home/ubuntu/Trading-Data-Pipeline
+            git reset --hard
+            git clean -fd
             git pull origin main
 
-            printf "%s\n" "${{ secrets.ENV }}" > .env
+            printf "%s" "${{ secrets.ENV }}" | base64 -d > .env
 
-            sudo docker-compose down || true
-            sudo docker-compose up -d --build
+            docker-compose down --remove-orphans || true
+            docker-compose up -d --build
 
       - name: Revoke GitHub IP from port 22
         if: always()
