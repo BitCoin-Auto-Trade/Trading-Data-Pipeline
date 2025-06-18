@@ -2,10 +2,10 @@ version: "3.8"
 
 x-airflow-env: &airflow-env
   # Airflow 기본 세팅
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
   AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-  AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-  AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+  AIRFLOW__CELERY__BROKER_URL: ${AIRFLOW__CELERY__BROKER_URL}
+  AIRFLOW__CELERY__RESULT_BACKEND: ${AIRFLOW__CELERY__RESULT_BACKEND}
   AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
 
   # 경로 설정
@@ -27,32 +27,8 @@ x-airflow-env: &airflow-env
   SNOWFLAKE_STAGE: ${SNOWFLAKE_STAGE}
   SNOWFLAKE_FILE_FORMAT: ${SNOWFLAKE_FILE_FORMAT}
 
-services:
-  postgres:
-    image: postgres:13
-    restart: always
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    volumes:
-      - postgres-db:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7
-    container_name: redis
-    restart: always
-    ports:
-      - "6379:6379"
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - redis-data:/data
-
   airflow-init:
     image: apache/airflow:2.9.0
-    depends_on:
-      - postgres
-      - redis
     environment:
       <<: *airflow-env
     volumes:
@@ -107,6 +83,3 @@ services:
       - ./src:/opt/airflow/src
     command: celery worker
 
-volumes:
-  postgres-db:
-  redis-data:
