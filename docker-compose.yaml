@@ -27,22 +27,21 @@ x-airflow-env: &airflow-env
   SNOWFLAKE_STAGE: ${SNOWFLAKE_STAGE}
   SNOWFLAKE_FILE_FORMAT: ${SNOWFLAKE_FILE_FORMAT}
 
-airflow-init:
-  image: apache/airflow:2.9.0
-  depends_on:
-    - airflow-webserver
-  environment:
-    <<: *airflow-env
-  volumes:
-    - ./dags:/opt/airflow/dags
-    - ./logs:/opt/airflow/logs
-    - ./src:/opt/airflow/src
-  entrypoint: >
-    bash -c "
-      airflow db migrate &&
-      airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com
-    "
-  restart: "no"
+services:
+  airflow-init:
+    image: apache/airflow:2.9.0
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./src:/opt/airflow/src
+    entrypoint: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com
+      "
+    restart: "no"
 
   airflow-webserver:
     image: apache/airflow:2.9.0
