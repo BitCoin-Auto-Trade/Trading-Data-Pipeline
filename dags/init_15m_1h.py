@@ -1,7 +1,6 @@
 from airflow import DAG
 from airflow.decorators import task
 from datetime import datetime, timedelta, UTC, timezone
-import pandas as pd
 import sys
 
 sys.path.append("/opt/airflow/src")
@@ -29,6 +28,9 @@ with DAG(
 
     @task()
     def load_batch(symbol: str, interval: str):
+        """심볼과 인터벌에 따라 초기 OHLCV 데이터를 수집하고 Snowflake에 업로드"""
+        import pandas as pd
+
         config = CONFIG[interval]
         count = config["count"]
         delta = {"15m": timedelta(minutes=15), "1h": timedelta(hours=1)}[interval]

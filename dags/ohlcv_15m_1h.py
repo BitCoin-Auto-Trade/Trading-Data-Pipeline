@@ -6,7 +6,6 @@ from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 from datetime import datetime, timedelta, UTC
 import sys
-import pandas as pd
 
 sys.path.append("/opt/airflow/src")
 
@@ -53,7 +52,7 @@ def build_dag(interval: str, cfg: dict) -> DAG:
             return {"start": start, "end": logical_date}
 
         @task()
-        def fetch(symbol: str, start: datetime, end: datetime) -> pd.DataFrame:
+        def fetch(symbol: str, start: datetime, end: datetime):
             """심볼별로 주어진 시간 구간의 OHLCV 데이터 수집"""
             try:
                 df = fetch_ohlcv(symbol, interval, start, end)
@@ -64,31 +63,29 @@ def build_dag(interval: str, cfg: dict) -> DAG:
                 raise AirflowFailException(f"{symbol}: fetch fail - {e}")
 
         @task()
-        def clean(df: pd.DataFrame) -> pd.DataFrame:
+        def clean(df):
             """수집한 원시 데이터 정제"""
             return clean_raw_ohlcv(df)
 
         @task()
-        def format_df(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+        def format_df(df, symbol: str):
             """정제된 데이터에 심볼 붙이고 컬럼 포맷 통일"""
             return format_ohlcv(df, symbol)
 
         @task()
-        def upload(df: pd.DataFrame, symbol: str, range_dict: dict):
-            """정제된 데이터를 S3에 parquet 파일로 저장"""
-            ts = pd.to_datetime(range_dict["end"])
+        def upload(df, symbol: str, range_dict: dict):
+            ts = range_dict["end"]
             s3_key = f"{ts.strftime('%Y%m%d_%H%M')}.parquet"
             upload_to_s3(df, symbol, interval, ts, s3_key)
 
         @task()
-        def load(df: pd.DataFrame, symbol: str, range_dict: dict):
-            """S3에서 parquet 경로 기반으로 Snowflake에 로딩"""
-            ts = pd.to_datetime(range_dict["end"])
+        def load(df, symbol: str, range_dict: dict):
+            ts = range_dict["end"]
             s3_key = f"{ts.strftime('%Y%m%d_%H%M')}.parquet"
             load_to_snowflake(
                 s3_path=f"{interval}/{symbol}/{s3_key}",
                 table=cfg["table"]
-            )
+    )
 
         def create_group(symbol: str, range_dict: dict) -> TaskGroup:
             """하나의 심볼에 대해 전체 태스크(fetch → clean → format → upload → load) 묶는 TaskGroup 생성"""

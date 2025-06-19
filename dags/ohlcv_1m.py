@@ -4,7 +4,6 @@ from airflow.utils.task_group import TaskGroup
 from airflow.operators.python import get_current_context
 
 from datetime import datetime, timedelta, timezone
-import pandas as pd
 import sys
 
 sys.path.append("/opt/airflow/src")
@@ -42,19 +41,19 @@ with DAG(
         }
 
     @task()
-    def fetch(symbol: str, start: datetime, end: datetime) -> pd.DataFrame:
+    def fetch(symbol: str, start: datetime, end: datetime):
         return fetch_ohlcv(symbol, "1m", start, end)
 
     @task()
-    def clean(df: pd.DataFrame) -> pd.DataFrame:
+    def clean(df):
         return clean_raw_ohlcv(df)
 
     @task()
-    def format_df(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+    def format_df(df, symbol: str):
         return format_ohlcv(df, symbol)
 
     @task()
-    def upload_redis(df: pd.DataFrame, symbol: str):
+    def upload_redis(df, symbol: str):
         upload_to_redis(df, symbol)
 
     def create_tasks(symbol: str) -> TaskGroup:

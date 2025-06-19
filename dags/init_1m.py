@@ -1,7 +1,6 @@
 from airflow import DAG
 from airflow.decorators import task
 from datetime import datetime, timedelta, timezone, UTC
-import pandas as pd
 import sys
 
 sys.path.append("/opt/airflow/src")
