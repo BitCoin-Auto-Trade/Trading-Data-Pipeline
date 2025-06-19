@@ -27,6 +27,11 @@ x-airflow-env: &airflow-env
   SNOWFLAKE_STAGE: ${SNOWFLAKE_STAGE}
   SNOWFLAKE_FILE_FORMAT: ${SNOWFLAKE_FILE_FORMAT}
 
+  # 기타 설정
+  REDIS_HOST: ${REDIS_HOST}
+  REDIS_PORT: ${REDIS_PORT}
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+
 services:
   airflow-init:
     image: apache/airflow:2.9.0
