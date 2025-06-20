@@ -28,6 +28,9 @@ with DAG(
     catchup=False,
     default_args=default_args,
     tags=["ohlcv", "1m"],
+    max_active_tasks=5,        
+    max_active_runs=1,    
+    concurrency=5,
 ) as dag:
 
     @task()
