@@ -41,9 +41,9 @@ def build_dag(interval: str, cfg: dict) -> DAG:
             "retry_delay": timedelta(minutes=1),
         },
         tags=["ohlcv", interval],
-        max_active_tasks=10,
-        max_active_runs=2,
-        concurrency=10,
+        max_active_tasks=20,
+        max_active_runs=4,
+        concurrency=20,
     ) as dag:
 
         @task()
