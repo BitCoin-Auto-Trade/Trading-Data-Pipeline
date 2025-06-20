@@ -1,7 +1,4 @@
-import json
 import logging
-import pandas as pd
-from collector.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -12,20 +9,30 @@ MAX_COUNTS = {
 }
 TTL_SECONDS = 60 * 10  # 10분 TTL
 
-def upload_to_redis(df: pd.DataFrame, symbol: str) -> None:
+def upload_to_redis(df, symbol: str) -> None:
     """Redis에 OHLCV 데이터를 업로드"""
-    if df.empty:
+    if df is None or df.empty:
         logger.info(f"[Redis] {symbol}: 빈 데이터 생략")
         return
 
+    import json
+    import pandas as pd
+    from collector.redis_client import get_redis_client
+
+    redis_client = get_redis_client()
     key = f"ohlcv:{symbol}:1m"
+
     try:
         existing_raw = redis_client.lrange(key, 0, -1)
         existing_rows = [json.loads(item) for item in existing_raw]
         new_rows = df.sort_values("timestamp").to_dict(orient="records")
+
         combined_df = pd.DataFrame(existing_rows + new_rows)
         combined_df["timestamp"] = pd.to_datetime(combined_df["timestamp"])
-        combined_df = combined_df.sort_values("timestamp").drop_duplicates(subset="timestamp", keep="last")
+        combined_df = (
+            combined_df.sort_values("timestamp")
+            .drop_duplicates(subset="timestamp", keep="last")
+        )
         deduped_df = combined_df[-MAX_COUNTS["1m"]:]
 
         pipe = redis_client.pipeline()

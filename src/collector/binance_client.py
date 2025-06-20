@@ -2,23 +2,24 @@ import logging
 from datetime import datetime
 from typing import Literal
 from collector.retry import retry
-import requests
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-Interval = Literal["15m", "1h"]
+Interval = Literal["15m", "1h", "1m"]
 
 @retry(max_attempts=5, delay=2)
-def fetch_ohlcv(symbol: str, interval: Interval, start_time: datetime, end_time: datetime) -> pd.DataFrame:
+def fetch_ohlcv(symbol: str, interval: Interval, start_time: datetime, end_time: datetime):
     """Binance API에서 OHLCV 데이터를 가져옵니다."""
+    import pandas as pd
+    import requests
+
     url = "https://fapi.binance.com/fapi/v1/klines"
     params = {
         "symbol": symbol,
         "interval": interval,
         "startTime": int(start_time.timestamp() * 1000),
         "endTime": int(end_time.timestamp() * 1000),
-        "limit": 1000
+        "limit": 1000,
     }
 
     try:

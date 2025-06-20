@@ -8,10 +8,6 @@ import sys
 
 sys.path.append("/opt/airflow/src")
 
-from collector.binance_client import fetch_ohlcv
-from uploader.redis_uploader import upload_to_redis
-from formatter.ohlcv_formatter import clean_raw_ohlcv, format_ohlcv
-
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 UTC = timezone.utc
 
@@ -35,6 +31,7 @@ with DAG(
 
     @task()
     def get_range(symbol: str) -> dict:
+        """실행 시간에 따라 OHLCV 데이터의 시작과 끝 시간을 계산합니다."""
         ctx = get_current_context()
         logical_date = ctx["logical_date"].replace(second=0, microsecond=0)
         return {
@@ -45,21 +42,30 @@ with DAG(
 
     @task()
     def fetch(symbol: str, start: datetime, end: datetime):
+        """Binance API에서 OHLCV 데이터를 가져옵니다."""
+        from collector.binance_client import fetch_ohlcv
         return fetch_ohlcv(symbol, "1m", start, end)
 
     @task()
     def clean(df):
+        """OHLCV 데이터의 형식을 정리합니다."""
+        from formatter.ohlcv_formatter import clean_raw_ohlcv
         return clean_raw_ohlcv(df)
 
     @task()
     def format_df(df, symbol: str):
+        """OHLCV 데이터를 포맷합니다."""
+        from formatter.ohlcv_formatter import format_ohlcv
         return format_ohlcv(df, symbol)
 
     @task()
     def upload_redis(df, symbol: str):
+        """OHLCV 데이터를 Redis에 업로드합니다."""
+        from uploader.redis_uploader import upload_to_redis
         upload_to_redis(df, symbol)
 
     def create_tasks(symbol: str) -> TaskGroup:
+        """각 심볼에 대한 태스크 그룹을 생성합니다."""
         with TaskGroup(group_id=f"{symbol}_group") as tg:
             range_dict = get_range.override(task_id=f"{symbol}_range")(symbol)
             df_raw = fetch.override(task_id=f"{symbol}_fetch")(symbol, range_dict["start"], range_dict["end"])

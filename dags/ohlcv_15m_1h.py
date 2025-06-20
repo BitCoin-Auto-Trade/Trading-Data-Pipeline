@@ -9,11 +9,6 @@ import sys
 
 sys.path.append("/opt/airflow/src")
 
-from collector.binance_client import fetch_ohlcv
-from formatter.ohlcv_formatter import clean_raw_ohlcv, format_ohlcv
-from uploader.s3_uploader import upload_to_s3
-from uploader.snowflake_uploader import load_to_snowflake
-
 interval_config = {
     "15m": {
         "dag_id": "ohlcv_15m",
@@ -48,7 +43,7 @@ def build_dag(interval: str, cfg: dict) -> DAG:
 
         @task()
         def get_range() -> dict:
-            """실행 시각 기준으로 start~end 시간 범위 구함"""
+            """실행 시간에 따라 OHLCV 데이터의 시작과 끝 시간을 계산합니다."""
             ctx = get_current_context()
             logical_date = ctx["logical_date"].replace(second=0, microsecond=0)
             start = logical_date - timedelta(minutes=int(interval[:-1]))
@@ -56,8 +51,9 @@ def build_dag(interval: str, cfg: dict) -> DAG:
 
         @task()
         def fetch(symbol: str, start: datetime, end: datetime):
-            """심볼별로 주어진 시간 구간의 OHLCV 데이터 수집"""
+            """Binance API에서 OHLCV 데이터를 가져옵니다."""
             try:
+                from collector.binance_client import fetch_ohlcv
                 df = fetch_ohlcv(symbol, interval, start, end)
                 if df.empty:
                     raise AirflowSkipException(f"{symbol}: empty df")
@@ -67,31 +63,37 @@ def build_dag(interval: str, cfg: dict) -> DAG:
 
         @task()
         def clean(df):
-            """수집한 원시 데이터 정제"""
+            """OHLCV 데이터의 형식을 정리합니다."""
+            from formatter.ohlcv_formatter import clean_raw_ohlcv
             return clean_raw_ohlcv(df)
 
         @task()
         def format_df(df, symbol: str):
-            """정제된 데이터에 심볼 붙이고 컬럼 포맷 통일"""
+            """OHLCV 데이터를 최종 형식으로 변환합니다."""
+            from formatter.ohlcv_formatter import format_ohlcv
             return format_ohlcv(df, symbol)
 
         @task()
         def upload(df, symbol: str, range_dict: dict):
+            """정리된 OHLCV 데이터를 S3에 업로드합니다."""
+            from uploader.s3_uploader import upload_to_s3
             ts = range_dict["end"]
             s3_key = f"{ts.strftime('%Y%m%d_%H%M')}.parquet"
             upload_to_s3(df, symbol, interval, ts, s3_key)
 
         @task()
         def load(df, symbol: str, range_dict: dict):
+            """S3에 업로드된 OHLCV 데이터를 Snowflake에 로드합니다."""
+            from uploader.snowflake_uploader import load_to_snowflake
             ts = range_dict["end"]
             s3_key = f"{ts.strftime('%Y%m%d_%H%M')}.parquet"
             load_to_snowflake(
                 s3_path=f"{interval}/{symbol}/{s3_key}",
                 table=cfg["table"]
-    )
+            )
 
         def create_group(symbol: str, range_dict: dict) -> TaskGroup:
-            """하나의 심볼에 대해 전체 태스크(fetch → clean → format → upload → load) 묶는 TaskGroup 생성"""
+            """각 심볼에 대한 작업 그룹을 생성합니다."""
             with TaskGroup(group_id=f"{symbol}_group") as tg:
                 raw = fetch.override(task_id=f"{symbol}_fetch")(symbol, range_dict["start"], range_dict["end"])
                 cleaned = clean.override(task_id=f"{symbol}_clean")(raw)
