@@ -2,9 +2,7 @@ version: "3.8"
 
 x-airflow-env: &airflow-env
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
-  AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-  AIRFLOW__CELERY__BROKER_URL: redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/0
-  AIRFLOW__CELERY__RESULT_BACKEND: redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/0
+  AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
   AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
 
   # 코드 경로
@@ -26,11 +24,6 @@ x-airflow-env: &airflow-env
   SNOWFLAKE_STAGE: ${SNOWFLAKE_STAGE}
   SNOWFLAKE_FILE_FORMAT: ${SNOWFLAKE_FILE_FORMAT}
 
-  # 기타
-  REDIS_HOST: ${REDIS_HOST}
-  REDIS_PORT: ${REDIS_PORT}
-  REDIS_PASSWORD: ${REDIS_PASSWORD}
-
 services:
   airflow-init:
     image: apache/airflow:2.9.0
@@ -46,6 +39,8 @@ services:
         airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com
       "
     restart: "no"
+    mem_limit: 512m
+    cpus: 0.3
 
   airflow-webserver:
     image: apache/airflow:2.9.0
@@ -61,6 +56,8 @@ services:
       - ./logs:/opt/airflow/logs
       - ./src:/opt/airflow/src
     command: webserver
+    mem_limit: 800m
+    cpus: 0.5
 
   airflow-scheduler:
     image: apache/airflow:2.9.0
@@ -74,16 +71,5 @@ services:
       - ./logs:/opt/airflow/logs
       - ./src:/opt/airflow/src
     command: scheduler
-
-  airflow-worker:
-    image: apache/airflow:2.9.0
-    restart: always
-    depends_on:
-      - airflow-webserver
-    environment:
-      <<: *airflow-env
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./src:/opt/airflow/src
-    command: celery worker
+    mem_limit: 600m
+    cpus: 0.4
