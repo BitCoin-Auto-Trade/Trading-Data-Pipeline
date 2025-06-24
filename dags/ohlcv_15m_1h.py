@@ -105,5 +105,5 @@ def build_dag(interval: str, cfg: dict) -> DAG:
 
         return dag
 
-globals()["collector_ohlcv_15m"] = build_dag("15m", interval_config["15m"])
-globals()["collector_ohlcv_1h"] = build_dag("1h", interval_config["1h"])
+globals()["ohlcv_15m"] = build_dag("15m", interval_config["15m"])
+globals()["ohlcv_1h"] = build_dag("1h", interval_config["1h"])
