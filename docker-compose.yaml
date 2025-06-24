@@ -26,7 +26,7 @@ x-airflow-env: &airflow-env
 
 services:
   airflow-init:
-    image: apache/airflow:2.9.0
+    image: apache/airflow:2.9.1-python3.12
     environment:
       <<: *airflow-env
     volumes:
@@ -43,7 +43,7 @@ services:
     cpus: 0.3
 
   airflow-webserver:
-    image: apache/airflow:2.9.0
+    image: apache/airflow:2.9.1-python3.12
     restart: always
     depends_on:
       - airflow-init
@@ -60,7 +60,7 @@ services:
     cpus: 0.5
 
   airflow-scheduler:
-    image: apache/airflow:2.9.0
+    image: apache/airflow:2.9.1-python3.12
     restart: always
     depends_on:
       - airflow-webserver
