@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-from collector.binance_client import fetch_ohlcv
-from formatter.ohlcv_formatter import clean_raw_ohlcv, format_ohlcv
-from uploader.redis_uploader import upload_to_redis
+from src.collector.binance_client import fetch_ohlcv
+from src.formatter.ohlcv_formatter import clean_raw_ohlcv, format_ohlcv
+from src.uploader.redis_uploader import upload_to_redis
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 UTC = timezone.utc

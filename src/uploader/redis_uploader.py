@@ -17,7 +17,7 @@ def upload_to_redis(df, symbol: str) -> None:
 
     import json
     import pandas as pd
-    from collector.redis_client import get_redis_client
+    from src.collector.redis_client import get_redis_client
 
     redis_client = get_redis_client()
     key = f"ohlcv:{symbol}:1m"
