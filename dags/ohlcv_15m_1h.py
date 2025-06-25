@@ -49,7 +49,7 @@ def build_dag(interval: str, cfg: dict):
         def fetch(symbol: str, start: datetime, end: datetime):
             """Binance API에서 OHLCV 데이터를 가져옵니다."""
             try:
-                from collector.binance_client import fetch_ohlcv
+                from src.collector.binance_client import fetch_ohlcv
                 df = fetch_ohlcv(symbol, interval, start, end)
                 if df.empty:
                     raise AirflowSkipException(f"{symbol}: empty df")
@@ -60,19 +60,19 @@ def build_dag(interval: str, cfg: dict):
         @task()
         def clean(df):
             """OHLCV 데이터의 형식을 정리합니다."""
-            from formatter.ohlcv_formatter import clean_raw_ohlcv
+            from src.formatter.ohlcv_formatter import clean_raw_ohlcv
             return clean_raw_ohlcv(df)
 
         @task()
         def format_df(df, symbol: str):
             """OHLCV 데이터를 최종 형식으로 변환합니다."""
-            from formatter.ohlcv_formatter import format_ohlcv
+            from src.formatter.ohlcv_formatter import format_ohlcv
             return format_ohlcv(df, symbol)
 
         @task()
         def upload(df, symbol: str, range_dict: dict):
             """정리된 OHLCV 데이터를 S3에 업로드합니다."""
-            from uploader.s3_uploader import upload_to_s3
+            from src.uploader.s3_uploader import upload_to_s3
             ts = range_dict["end"]
             s3_key = f"{ts.strftime('%Y%m%d_%H%M')}.parquet"
             upload_to_s3(df, symbol, interval, ts, s3_key)
@@ -80,7 +80,7 @@ def build_dag(interval: str, cfg: dict):
         @task()
         def load(df, symbol: str, range_dict: dict):
             """S3에 업로드된 OHLCV 데이터를 Snowflake에 로드합니다."""
-            from uploader.snowflake_uploader import load_to_snowflake
+            from src.uploader.snowflake_uploader import load_to_snowflake
             ts = range_dict["end"]
             s3_key = f"{ts.strftime('%Y%m%d_%H%M')}.parquet"
             load_to_snowflake(

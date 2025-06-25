@@ -3,7 +3,7 @@ x-airflow-env: &airflow-env
   AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
   AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
 
-  PYTHONPATH: /opt/airflow/src
+  PYTHONPATH: /opt/airflow
 
   # S3
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
