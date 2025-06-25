@@ -7,4 +7,3 @@ requests
 python-dotenv
 pytest
 redis
-ta

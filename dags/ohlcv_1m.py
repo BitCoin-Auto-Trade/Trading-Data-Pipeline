@@ -1,7 +1,6 @@
-from airflow import DAG
-from airflow.decorators import task
+from airflow.decorators import dag, task
 from airflow.utils.task_group import TaskGroup
-from airflow.operators.python import get_current_context
+from airflow.sdk.python import get_current_context
 
 from datetime import datetime, timedelta, timezone
 
@@ -14,15 +13,16 @@ default_args = {
     "retry_delay": timedelta(minutes=1),
 }
 
-with DAG(
+@dag(
     dag_id="ohlcv_1m",
     start_date=datetime(2024, 1, 1, tzinfo=UTC),
-    schedule_interval="* * * * *",
+    schedule="* * * * *",
     catchup=False,
     default_args=default_args,
     tags=["ohlcv", "1m"],
-) as dag:
-
+)
+def ohlcv_1m():
+    
     @task()
     def get_range(symbol: str) -> dict:
         """실행 시간에 따라 OHLCV 데이터의 시작과 끝 시간을 계산합니다."""
@@ -70,3 +70,5 @@ with DAG(
 
     for sym in SYMBOLS:
         create_tasks(sym)
+
+dag = ohlcv_1m()

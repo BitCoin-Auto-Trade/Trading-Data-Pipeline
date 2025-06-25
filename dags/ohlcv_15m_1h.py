@@ -1,7 +1,6 @@
-from airflow import DAG
-from airflow.decorators import task
+from airflow.decorators import dag, task
 from airflow.utils.task_group import TaskGroup
-from airflow.operators.python import get_current_context
+from airflow.sdk.python import get_current_context
 from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 from datetime import datetime, timedelta, UTC
@@ -21,11 +20,12 @@ interval_config = {
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 
-def build_dag(interval: str, cfg: dict) -> DAG:
-    with DAG(
+def build_dag(interval: str, cfg: dict):
+
+    @dag(
         dag_id=cfg["dag_id"],
         start_date=datetime(2024, 1, 1, tzinfo=UTC),
-        schedule_interval=cfg["schedule"],
+        schedule=cfg["schedule"],
         catchup=False,
         default_args={
             "owner": "airflow",
@@ -33,7 +33,8 @@ def build_dag(interval: str, cfg: dict) -> DAG:
             "retry_delay": timedelta(minutes=1),
         },
         tags=["ohlcv", interval],
-    ) as dag:
+    )
+    def _template():
 
         @task()
         def get_range() -> dict:
@@ -100,7 +101,7 @@ def build_dag(interval: str, cfg: dict) -> DAG:
         for sym in SYMBOLS:
             create_group(sym, range_dict)
 
-        return dag
+    return _template()
 
 globals()["ohlcv_15m"] = build_dag("15m", interval_config["15m"])
 globals()["ohlcv_1h"] = build_dag("1h", interval_config["1h"])
