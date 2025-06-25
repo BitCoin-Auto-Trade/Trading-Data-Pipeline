@@ -72,3 +72,4 @@ def ohlcv_1m():
         create_tasks(sym)
 
 dag = ohlcv_1m()
+globals()["ohlcv_1m"] = dag
