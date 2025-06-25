@@ -5,9 +5,6 @@ from airflow.operators.python import get_current_context
 from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 from datetime import datetime, timedelta, UTC
-import sys
-
-sys.path.append("/opt/airflow/src")
 
 interval_config = {
     "15m": {

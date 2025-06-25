@@ -4,9 +4,6 @@ from airflow.utils.task_group import TaskGroup
 from airflow.operators.python import get_current_context
 
 from datetime import datetime, timedelta, timezone
-import sys
-
-sys.path.append("/opt/airflow/src")
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 UTC = timezone.utc
