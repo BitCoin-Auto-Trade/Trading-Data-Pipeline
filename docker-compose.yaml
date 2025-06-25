@@ -34,7 +34,7 @@ services:
     entrypoint: >
       bash -c "
         airflow db migrate &&
-        python /opt/airflow/init/create_user.py
+        python /opt/airflow/init/init_user.py
       "
     restart: "no"
     mem_limit: 512m
