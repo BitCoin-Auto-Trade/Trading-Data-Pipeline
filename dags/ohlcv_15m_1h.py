@@ -3,7 +3,8 @@ from airflow.utils.task_group import TaskGroup
 from airflow.sdk import get_current_context
 from airflow.exceptions import AirflowSkipException, AirflowFailException
 
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
+UTC = timezone.utc
 
 interval_config = {
     "15m": {
