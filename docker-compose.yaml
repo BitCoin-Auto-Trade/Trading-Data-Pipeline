@@ -54,7 +54,7 @@ services:
       - ./logs:/opt/airflow/logs
       - ./src:/opt/airflow/src
       - ./init:/opt/airflow/init
-    command: api-server
+    command: webserver
     mem_limit: 1500m
     cpus: 0.5
 
