@@ -1,6 +1,6 @@
 from airflow.decorators import dag, task
 from airflow.utils.task_group import TaskGroup
-from airflow.sdk.python import get_current_context
+from airflow.sdk import get_current_context
 from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 from datetime import datetime, timedelta, UTC
