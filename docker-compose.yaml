@@ -55,8 +55,8 @@ services:
       - ./src:/opt/airflow/src
       - ./init:/opt/airflow/init
     command: api-server
-    mem_limit: 1500m
-    cpus: 0.5
+    mem_limit: 2.5g
+    cpus: 1.5
 
   airflow-scheduler:
     image: apache/airflow:3.0.1-python3.10
