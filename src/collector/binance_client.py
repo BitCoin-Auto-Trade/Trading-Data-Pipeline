@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from typing import Literal
-from src.collector.retry import retry
+from collector.retry import retry
 
 logger = logging.getLogger(__name__)
 

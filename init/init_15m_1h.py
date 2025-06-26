@@ -1,10 +1,10 @@
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 
-from src.collector.binance_client import fetch_ohlcv
-from src.formatter.ohlcv_formatter import clean_raw_ohlcv, format_ohlcv
-from src.uploader.s3_uploader import upload_to_s3
-from src.uploader.snowflake_uploader import load_to_snowflake
+from collector.binance_client import fetch_ohlcv
+from formatter.ohlcv_formatter import clean_raw_ohlcv, format_ohlcv
+from uploader.s3_uploader import upload_to_s3
+from uploader.snowflake_uploader import load_to_snowflake
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 UTC = timezone.utc

@@ -4,6 +4,9 @@ from airflow.sdk import get_current_context
 
 from datetime import datetime, timedelta, timezone
 
+import sys
+sys.path.append("/opt/airflow/src")
+
 SYMBOLS = ["BTCUSDT", "ETHUSDT"]
 UTC = timezone.utc
 
@@ -37,25 +40,25 @@ def ohlcv_1m():
     @task()
     def fetch(symbol: str, start: datetime, end: datetime):
         """Binance API에서 OHLCV 데이터를 가져옵니다."""
-        from src.collector.binance_client import fetch_ohlcv
+        from collector.binance_client import fetch_ohlcv
         return fetch_ohlcv(symbol, "1m", start, end)
 
     @task()
     def clean(df):
         """OHLCV 데이터의 형식을 정리합니다."""
-        from src.formatter.ohlcv_formatter import clean_raw_ohlcv
+        from formatter.ohlcv_formatter import clean_raw_ohlcv
         return clean_raw_ohlcv(df)
 
     @task()
     def format_df(df, symbol: str):
         """OHLCV 데이터를 포맷합니다."""
-        from src.formatter.ohlcv_formatter import format_ohlcv
+        from formatter.ohlcv_formatter import format_ohlcv
         return format_ohlcv(df, symbol)
 
     @task()
     def upload_redis(df, symbol: str):
         """OHLCV 데이터를 Redis에 업로드합니다."""
-        from src.uploader.redis_uploader import upload_to_redis
+        from uploader.redis_uploader import upload_to_redis
         upload_to_redis(df, symbol)
 
     def create_tasks(symbol: str) -> TaskGroup:
@@ -71,5 +74,4 @@ def ohlcv_1m():
     for sym in SYMBOLS:
         create_tasks(sym)
 
-dag = ohlcv_1m()
-globals()["ohlcv_1m"] = dag
+ohlcv_1m = ohlcv_1m()
