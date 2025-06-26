@@ -74,4 +74,4 @@ def ohlcv_1m():
     for sym in SYMBOLS:
         create_tasks(sym)
 
-ohlcv_1m = ohlcv_1m()
+globals()["ohlcv_1m"] = ohlcv_1m()

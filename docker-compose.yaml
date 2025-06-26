@@ -1,7 +1,11 @@
 x-airflow-env: &airflow-env
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+  AIRFLOW__API__AUTH_BACKEND: airflow.api.auth.backend.default
   AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
   AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+  AIRFLOW__API__HOST: 0.0.0.0
+  AIRFLOW__API__PORT: 8080
+
 
   PYTHONPATH: /opt/airflow/src
 
@@ -73,5 +77,20 @@ services:
       - ./logs:/opt/airflow/logs
       - ./src:/opt/airflow/src
     command: scheduler
+    mem_limit: 600m
+    cpus: 0.4
+    
+  airflow-dag-processor:
+    image: apache/airflow:3.0.1-python3.10
+    restart: always
+    depends_on:
+      - airflow-webserver
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./src:/opt/airflow/src
+    command: dag-processor
     mem_limit: 600m
     cpus: 0.4
