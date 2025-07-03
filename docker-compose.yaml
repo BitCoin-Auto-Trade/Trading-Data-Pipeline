@@ -1,35 +1,7 @@
 x-airflow-env: &airflow-env
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
-  AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
   AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
-  AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: 120
-  AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT: 300
-  AIRFLOW__WEBSERVER__AUTHENTICATE: true
-  AIRFLOW__WEBSERVER__HEALTH_CHECK_ENDPOINT: /api/v2/monitor/health
-  AIRFLOW__SDK__BASE_URL: http://airflow-webserver:8080/api/v2
-  AIRFLOW__AUTHENTICATION_MANAGER_CLASS: ${AIRFLOW__AUTHENTICATION_MANAGER_CLASS:-airflow.auth.managers.fab.auth_manager.FabAuthManager}
-  AIRFLOW__AUTHORIZATION_MANAGER_CLASS: ${AIRFLOW__AUTHORIZATION_MANAGER_CLASS:-airflow.auth.managers.fab.auth_manager.FabAuthManager}
-  
-  # AWS
-  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-  AWS_S3_BUCKET: ${AWS_S3_BUCKET}
-  AWS_REGION: ${AWS_REGION}
-
-  # Snowflake
-  SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT}
-  SNOWFLAKE_USER: ${SNOWFLAKE_USER}
-  SNOWFLAKE_PASSWORD: ${SNOWFLAKE_PASSWORD}
-  SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE}
-  SNOWFLAKE_SCHEMA: ${SNOWFLAKE_SCHEMA}
-  SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE}
-  SNOWFLAKE_STAGE: ${SNOWFLAKE_STAGE}
-  SNOWFLAKE_FILE_FORMAT: ${SNOWFLAKE_FILE_FORMAT}
-
-  # Redis
-  REDIS_HOST: ${REDIS_HOST}
-  REDIS_PORT: ${REDIS_PORT}
-  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
 
 x-airflow-volumes: &airflow-volumes
   - ./dags:/opt/airflow/dags
@@ -38,25 +10,34 @@ x-airflow-volumes: &airflow-volumes
 
 services:
   trading-airflow-init:
-    image: apache/airflow:3.0.2-python3.10
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file: .env
     environment:
       <<: *airflow-env
-    entrypoint: bash -c "airflow db migrate"
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        airflow db upgrade &&
+        airflow db migrate &&
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname admin \
+          --lastname admin \
+          --role Admin \
+          --email admin@example.com
     volumes: *airflow-volumes
     restart: "no"
-    mem_limit: 512m
-    cpus: 0.3
 
   trading-airflow-webserver:
-    image: apache/airflow:3.0.2-python3.10
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file: .env
-    command: api-server
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/v2/monitor/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    command: webserver
     restart: always
     depends_on:
       - trading-airflow-init
@@ -65,66 +46,18 @@ services:
     environment:
       <<: *airflow-env
     volumes: *airflow-volumes
-    mem_limit: 2.5g
-    cpus: 1.5
-    networks:
-      - trading-network
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
 
   trading-airflow-scheduler:
-    image: apache/airflow:3.0.2-python3.10
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file: .env
     command: scheduler
-    restart: always
-    depends_on:
-      trading-airflow-webserver:
-        condition: service_healthy
-      trading-airflow-dag-processor:
-        condition: service_healthy
-    environment:
-      <<: *airflow-env
-    volumes: *airflow-volumes
-    mem_limit: 1g
-    cpus: 1
-    networks:
-      - trading-network
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-
-  trading-airflow-dag-processor:
-    image: apache/airflow:3.0.2-python3.10
-    env_file: .env
-    command: dag-processor
-    healthcheck:
-      test: ["CMD-SHELL", "airflow jobs check --job-type DagProcessorJob --hostname \"$(hostname)\""]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
     restart: always
     depends_on:
       - trading-airflow-webserver
     environment:
       <<: *airflow-env
-      HOSTNAME: trading-airflow-dag-processor
     volumes: *airflow-volumes
-    mem_limit: 1g
-    cpus: 1
-    networks:
-      - trading-network
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-
-networks:
-  trading-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.30.0.0/16
-    name: trading-network
-    driver_opts:
-      com.docker.network.bridge.name: br-trading
+    ports:
+      - "8793:8793"

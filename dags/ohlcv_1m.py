@@ -1,9 +1,8 @@
-from airflow.decorators import dag, task
 from airflow.utils.task_group import TaskGroup
-from airflow.sdk import get_current_context
+from airflow.decorators import dag, task  
+from airflow.operators.python import get_current_context
 
 from datetime import datetime, timedelta, timezone
-
 import sys
 sys.path.append("/opt/airflow/src")
 
@@ -65,9 +64,9 @@ def ohlcv_1m():
         """각 심볼에 대한 태스크 그룹을 생성합니다."""
         with TaskGroup(group_id=f"{symbol}_group") as tg:
             range_dict = get_range.override(task_id=f"{symbol}_range")(symbol)
-            df_raw = fetch.override(task_id=f"{symbol}_fetch")(symbol, range_dict["start"], range_dict["end"])
-            df_clean = clean.override(task_id=f"{symbol}_clean")(df_raw)
-            df_fmt = format_df.override(task_id=f"{symbol}_format")(df_clean, symbol)
+            df_raw     = fetch.override   (task_id=f"{symbol}_fetch")(symbol, range_dict["start"], range_dict["end"])
+            df_clean   = clean.override   (task_id=f"{symbol}_clean")(df_raw)
+            df_fmt     = format_df.override(task_id=f"{symbol}_format")(df_clean, symbol)
             upload_redis.override(task_id=f"{symbol}_redis")(df_fmt, symbol)
         return tg
 

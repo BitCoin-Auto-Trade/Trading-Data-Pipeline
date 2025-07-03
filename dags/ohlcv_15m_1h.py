@@ -1,11 +1,11 @@
-from airflow.decorators import dag, task
 from airflow.utils.task_group import TaskGroup
-from airflow.sdk import get_current_context
+from airflow.decorators import dag, task
+from airflow.operators.python import get_current_context
 from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 from datetime import datetime, timedelta, timezone
-
 import sys
+
 sys.path.append("/opt/airflow/src")
 
 UTC = timezone.utc
@@ -95,8 +95,8 @@ def build_dag(interval: str, cfg: dict):
         def create_group(symbol: str, range_dict: dict) -> TaskGroup:
             """각 심볼에 대한 작업 그룹을 생성합니다."""
             with TaskGroup(group_id=f"{symbol}_group") as tg:
-                raw = fetch.override(task_id=f"{symbol}_fetch")(symbol, range_dict["start"], range_dict["end"])
-                cleaned = clean.override(task_id=f"{symbol}_clean")(raw)
+                raw       = fetch.override(task_id=f"{symbol}_fetch")(symbol, range_dict["start"], range_dict["end"])
+                cleaned   = clean.override(task_id=f"{symbol}_clean")(raw)
                 formatted = format_df.override(task_id=f"{symbol}_format")(cleaned, symbol)
                 upload.override(task_id=f"{symbol}_upload")(formatted, symbol, range_dict)
                 load.override(task_id=f"{symbol}_load")(formatted, symbol, range_dict)
@@ -109,4 +109,4 @@ def build_dag(interval: str, cfg: dict):
     return _template()
 
 globals()["ohlcv_15m"] = build_dag("15m", interval_config["15m"])
-globals()["ohlcv_1h"] = build_dag("1h", interval_config["1h"])
+globals()["ohlcv_1h"]  = build_dag("1h", interval_config["1h"])

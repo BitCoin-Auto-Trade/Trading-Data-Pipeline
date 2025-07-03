@@ -6,11 +6,11 @@
 #
 asn1crypto==1.5.1
     # via snowflake-connector-python
-boto3==1.38.43
+boto3==1.39.2
     # via
     #   -r requirements.in
     #   snowflake-connector-python
-botocore==1.38.43
+botocore==1.39.2
     # via
     #   boto3
     #   s3transfer
@@ -27,7 +27,7 @@ charset-normalizer==3.4.2
     # via
     #   requests
     #   snowflake-connector-python
-cryptography==45.0.4
+cryptography==45.0.5
     # via
     #   pyopenssl
     #   snowflake-connector-python
@@ -43,7 +43,7 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-numpy==2.3.1
+numpy==2.2.6
     # via pandas
 packaging==25.0
     # via
@@ -55,7 +55,7 @@ platformdirs==4.3.8
     # via snowflake-connector-python
 pluggy==1.6.0
     # via pytest
-pyarrow==20.0.0
+pyarrow==18.1.0
     # via -r requirements.in
 pycparser==2.22
     # via cffi
@@ -87,7 +87,7 @@ s3transfer==0.13.0
     # via boto3
 six==1.17.0
     # via python-dateutil
-snowflake-connector-python==3.15.0
+snowflake-connector-python==3.16.0
     # via -r requirements.in
 sortedcontainers==2.4.0
     # via snowflake-connector-python
