@@ -1,40 +1,82 @@
-import logging
-from datetime import datetime
-from typing import Literal
-from collector.retry import retry
+import os
+import time
+import hmac
+import hashlib
+from urllib.parse import urlencode
+import requests
+from dotenv import load_dotenv
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+load_dotenv()
 
-Interval = Literal["15m", "1h", "1m"]
+class BinanceClient:
+    """Handles communication with the Binance Futures API.
+    """
+    BASE_URL = "https://fapi.binance.com"
 
-@retry(max_attempts=5, delay=2)
-def fetch_ohlcv(symbol: str, interval: Interval, start_time: datetime, end_time: datetime):
-    """Binance API에서 OHLCV 데이터를 가져옵니다."""
-    import pandas as pd
-    import requests
+    def __init__(self):
+        self.api_key = os.getenv("BINANCE_API_KEY")
+        self.api_secret = os.getenv("BINANCE_API_SECRET")
+        self.logger = get_logger(__name__)
 
-    url = "https://fapi.binance.com/fapi/v1/klines"
-    params = {
-        "symbol": symbol,
-        "interval": interval,
-        "startTime": int(start_time.timestamp() * 1000),
-        "endTime": int(end_time.timestamp() * 1000),
-        "limit": 1000,
-    }
+    def _get_signature(self, params):
+        """Generates the HMAC SHA256 signature for signed requests.
+        """
+        return hmac.new(
+            self.api_secret.encode("utf-8"),
+            urlencode(params).encode("utf-8"),
+            hashlib.sha256
+        ).hexdigest()
 
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Binance API request failed: {e}")
-        raise
+    def _send_request(self, endpoint, params=None, signed=False):
+        """Sends a request to the Binance API.
+        """
+        if params is None:
+            params = {}
+        
+        if signed:
+            params["timestamp"] = int(time.time() * 1000)
+            params["signature"] = self._get_signature(params)
 
-    data = response.json()
-    df = pd.DataFrame(data)[[0, 1, 2, 3, 4, 5]]
-    df.columns = ["open_time", "open", "high", "low", "close", "volume"]
+        headers = {"X-MBX-APIKEY": self.api_key} if self.api_key else {}
+        
+        try:
+            response = requests.get(
+                f"{self.BASE_URL}{endpoint}",
+                params=params,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Error requesting {endpoint}: {e}")
+            return None
 
-    df["timestamp"] = pd.to_datetime(df["open_time"], unit="ms")
-    df["symbol"] = symbol
-    df["interval"] = interval
+    def get_ticker_price(self, symbol: str):
+        """Fetches the latest price for a specific symbol.
+        """
+        self.logger.info(f"Fetching ticker price for {symbol}")
+        return self._send_request("/fapi/v2/ticker/price", {"symbol": symbol})
 
-    return df[["timestamp", "open", "high", "low", "close", "volume", "symbol", "interval"]]
+    def get_klines(self, symbol: str, interval: str, start_time=None, end_time=None, limit: int = 500):
+        """Fetches raw Kline/Candlestick data.
+        """
+        self.logger.info(f"Fetching klines for {symbol} with interval {interval}")
+        params = {"symbol": symbol, "interval": interval, "limit": limit}
+        if start_time:
+            params["startTime"] = start_time
+        if end_time:
+            params["endTime"] = end_time
+        return self._send_request("/fapi/v1/klines", params)
+
+    def get_funding_rate(self, symbol: str, limit: int = 100):
+        """Fetches funding rate history.
+        """
+        self.logger.info(f"Fetching funding rate for {symbol}")
+        return self._send_request("/fapi/v1/fundingRate", {"symbol": symbol, "limit": limit})
+
+    def get_open_interest(self, symbol: str):
+        """Fetches open interest for a specific symbol.
+        """
+        self.logger.info(f"Fetching open interest for {symbol}")
+        return self._send_request("/fapi/v1/openInterest", {"symbol": symbol})
