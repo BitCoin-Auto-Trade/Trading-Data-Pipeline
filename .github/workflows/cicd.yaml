@@ -1,0 +1,72 @@
+name: Deploy Trading Data Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get current GitHub runner IP
+        id: ip
+        run: |
+          echo "ip=$(curl -s ifconfig.me)" >> $GITHUB_OUTPUT
+
+      - name: Allow GitHub IP on port 22
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.GETBITCOIN_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ip }}/32 \
+            --region ap-northeast-2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_GETBITCOIN_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -ex
+            cd /home/ubuntu/Trading-Data-Pipeline
+            git reset --hard
+            git clean -fd
+            git pull origin main --no-rebase 
+
+            printf "%s" "${{ secrets.ENV }}" | base64 -d > .env
+
+            # Stop existing processes gracefully (if running)
+            echo "Stopping existing Python processes..."
+            pkill -f "python -m scheduler.run_jobs" || true
+            pkill -f "python -m src.collector.binance_ws_client" || true
+            sleep 5 # Give processes time to terminate
+
+            # Install/update Python dependencies
+            echo "Installing/updating Python dependencies..."
+            /usr/bin/python3 -m pip install --upgrade pip
+            /usr/bin/python3 -m pip install -r requirements.txt
+
+            # Restart scheduler and websocket client in background
+            echo "Restarting scheduler and websocket client..."
+            nohup /usr/bin/python3 -m scheduler.run_jobs > scheduler.log 2>&1 &
+            nohup /usr/bin/python3 -m src.collector.binance_ws_client > ws_client.log 2>&1 &
+
+            echo "Deployment and service restart complete."
+
+      - name: Revoke GitHub IP from port 22
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.GETBITCOIN_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ip }}/32 \
+            --region ap-northeast-2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
