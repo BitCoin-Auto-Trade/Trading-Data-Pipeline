@@ -1,8 +1,9 @@
 requests
 python-dotenv
-psycopg2-binary  
-redis
-APScheduler      
-loguru     
-pandas
+psycopg2-binary
 boto3
+apscheduler
+loguru
+pandas
+redis
+websockets

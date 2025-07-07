@@ -20,11 +20,9 @@ class IndicatorCalculator:
             'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
         ])
         
-        # Convert timestamp to datetime and set as index
         df['open_time'] = pd.to_datetime(df['open_time'], unit='ms')
         df.set_index('open_time', inplace=True)
 
-        # Convert relevant columns to numeric types
         numeric_cols = ['open', 'high', 'low', 'close', 'volume']
         for col in numeric_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -32,7 +30,7 @@ class IndicatorCalculator:
         self.logger.info(f"Formatted {len(df)} klines into DataFrame.")
         return df
 
-    def calculate_ema(self, klines_df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def calculate_ema(self, klines_df: pd.DataFrame, period: int) -> pd.DataFrame:
         """Calculates Exponential Moving Average (EMA).
         """
         klines_df[f'ema_{period}'] = klines_df['close'].ewm(span=period, adjust=False).mean()
@@ -51,4 +49,23 @@ class IndicatorCalculator:
         
         klines_df[f'rsi_{period}'] = rsi
         self.logger.info(f"Calculated RSI({period}) for {len(klines_df)} data points.")
+        return klines_df
+
+    def calculate_macd(self, klines_df: pd.DataFrame, short_period: int = 12, long_period: int = 26, signal_period: int = 9) -> pd.DataFrame:
+        """Calculates Moving Average Convergence Divergence (MACD).
+        """
+        # Calculate short and long term EMAs
+        ema_short = klines_df['close'].ewm(span=short_period, adjust=False).mean()
+        ema_long = klines_df['close'].ewm(span=long_period, adjust=False).mean()
+        
+        # Calculate MACD line
+        klines_df['macd'] = ema_short - ema_long
+        
+        # Calculate Signal line
+        klines_df['macd_signal'] = klines_df['macd'].ewm(span=signal_period, adjust=False).mean()
+        
+        # Calculate MACD Histogram
+        klines_df['macd_hist'] = klines_df['macd'] - klines_df['macd_signal']
+        
+        self.logger.info(f"Calculated MACD({short_period},{long_period},{signal_period}) for {len(klines_df)} data points.")
         return klines_df

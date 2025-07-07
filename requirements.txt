@@ -54,3 +54,5 @@ urllib3==2.5.0
     # via
     #   botocore
     #   requests
+websockets==15.0.1
+    # via -r requirements.in
