@@ -1,9 +1,8 @@
-# core
-boto3
-snowflake-connector-python
-pandas
-pyarrow
 requests
 python-dotenv
-pytest
+psycopg2-binary  
 redis
+APScheduler      
+loguru     
+pandas
+boto3
