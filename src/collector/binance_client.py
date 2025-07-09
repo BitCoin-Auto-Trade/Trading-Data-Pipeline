@@ -12,7 +12,7 @@ from src.utils.logger import get_logger
 load_dotenv()
 
 class BinanceClient:
-    """Handles communication with the Binance Futures API (REST).
+    """바이낸스 선물 API (REST)와의 통신을 처리합니다.
     """
     BASE_URL = "https://fapi.binance.com"
     DATA_URL = "https://fapi.binance.com/futures/data"
@@ -44,15 +44,15 @@ class BinanceClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error requesting {endpoint}: {e}")
+            self.logger.error(f"{endpoint} 요청 중 오류 발생: {e}")
             return None
 
     def get_ticker_price(self, symbol: str):
-        self.logger.info(f"Fetching ticker price for {symbol}")
+        self.logger.info(f"{symbol}의 티커 가격을 가져옵니다.")
         return self._send_request(self.BASE_URL, "/fapi/v2/ticker/price", {"symbol": symbol})
 
     def get_historical_klines(self, symbol: str, interval: str, start_date: str, end_date: str):
-        self.logger.info(f"Fetching historical klines for {symbol} from {start_date} to {end_date}")
+        self.logger.info(f"{start_date}부터 {end_date}까지 {symbol}의 과거 kline을 가져옵니다.")
         start_ts = int(datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S').timestamp() * 1000)
         end_ts = int(datetime.datetime.strptime(end_date, '%Y-%m-%d %H:%M:%S').timestamp() * 1000)
         
@@ -68,24 +68,24 @@ class BinanceClient:
             if not klines:
                 break
             all_klines.extend(klines)
-            start_ts = klines[-1][0] + 1 # Next start time is after the last kline's open time
+            start_ts = klines[-1][0] + 1 # 다음 시작 시간은 마지막 kline의 시작 시간 이후입니다.
         
         return all_klines
 
     def get_funding_rate(self, symbol: str, limit: int = 100):
-        self.logger.info(f"Fetching funding rate for {symbol}")
+        self.logger.info(f"{symbol}의 펀딩 비율을 가져옵니다.")
         return self._send_request(self.BASE_URL, "/fapi/v1/fundingRate", {"symbol": symbol, "limit": limit})
 
     def get_open_interest(self, symbol: str):
-        self.logger.info(f"Fetching open interest for {symbol}")
+        self.logger.info(f"{symbol}의 미결제 약정을 가져옵니다.")
         return self._send_request(self.BASE_URL, "/fapi/v1/openInterest", {"symbol": symbol})
 
     def get_mark_price(self, symbol: str):
-        self.logger.info(f"Fetching mark price for {symbol}")
+        self.logger.info(f"{symbol}의 마크 가격을 가져옵니다.")
         return self._send_request(self.BASE_URL, "/fapi/v1/premiumIndex", {"symbol": symbol})
 
     def get_long_short_ratio(self, symbol: str, period: str, limit: int = 500):
-        self.logger.info(f"Fetching long/short ratio for {symbol} ({period})")
+        self.logger.info(f"{symbol}의 롱/숏 비율을 가져옵니다 ({period})")
         return self._send_request(self.DATA_URL, "/globalLongShortAccountRatio", {
             "symbol": symbol, 
             "period": period, 
@@ -93,12 +93,12 @@ class BinanceClient:
         })
 
     def get_force_orders(self, symbol: str = None, limit: int = 100):
-        self.logger.info(f"Fetching force orders for {symbol or 'all symbols'}")
+        self.logger.info(f"{symbol or '모든 심볼'}의 강제 주문을 가져옵니다.")
         params = {"limit": limit}
         if symbol:
             params["symbol"] = symbol
         return self._send_request(self.DATA_URL, "/allForceOrders", params)
 
     def get_order_book_depth(self, symbol: str, limit: int = 100):
-        self.logger.info(f"Fetching order book depth for {symbol}")
+        self.logger.info(f"{symbol}의 오더북 깊이를 가져옵니다.")
         return self._send_request(self.BASE_URL, "/fapi/v1/depth", {"symbol": symbol, "limit": limit})

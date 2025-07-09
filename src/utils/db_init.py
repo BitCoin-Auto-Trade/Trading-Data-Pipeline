@@ -7,7 +7,7 @@ load_dotenv()
 logger = get_logger(__name__)
 
 def get_db_connection():
-    """Establishes a connection to the PostgreSQL database."""
+    """PostgreSQL 데이터베이스에 대한 연결을 설정합니다."""
     try:
         conn = psycopg2.connect(
             host=os.getenv("POSTGRES_HOST", "localhost"),
@@ -16,14 +16,14 @@ def get_db_connection():
             password=os.getenv("POSTGRES_PASSWORD", ""),
             port=os.getenv("POSTGRES_PORT", 5432)
         )
-        logger.info("Database connection established successfully.")
+        logger.info("데이터베이스 연결이 성공적으로 설정되었습니다.")
         return conn
     except psycopg2.OperationalError as e:
-        logger.error(f"Could not connect to the database: {e}")
+        logger.error(f"데이터베이스에 연결할 수 없습니다: {e}")
         return None
 
 def create_tables():
-    """Create tables in the PostgreSQL database."""
+    """PostgreSQL 데이터베이스에 테이블을 생성합니다."""
     commands = (
         """
         CREATE TABLE IF NOT EXISTS klines_1m (
@@ -62,14 +62,14 @@ def create_tables():
         
         cur.close()
         conn.commit()
-        logger.info("All tables created successfully or already exist.")
+        logger.info("모든 테이블이 성공적으로 생성되었거나 이미 존재합니다.")
     except (Exception, psycopg2.DatabaseError) as error:
-        logger.error(f"Error while creating tables: {error}")
+        logger.error(f"테이블 생성 중 오류 발생: {error}")
     finally:
         if conn is not None:
             conn.close()
 
 if __name__ == '__main__':
-    print("Initializing database and creating tables...")
+    print("데이터베이스를 초기화하고 테이블을 생성하는 중...")
     create_tables()
-    print("Database initialization complete.")
+    print("데이터베이스 초기화 완료.")

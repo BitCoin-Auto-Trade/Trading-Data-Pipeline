@@ -4,7 +4,7 @@ from src.utils.logger import get_logger
 from src.utils.db_init import get_db_connection # Reusing the connection function
 
 class PostgresUploader:
-    """Handles data uploading to a PostgreSQL database.
+    """PostgreSQL 데이터베이스에 데이터 업로드를 처리합니다.
     """
     def __init__(self):
         self.logger = get_logger(__name__)
@@ -12,50 +12,50 @@ class PostgresUploader:
         self._connect()
 
     def _connect(self):
-        """Establishes a connection to the PostgreSQL database.
+        """PostgreSQL 데이터베이스에 연결을 설정합니다.
         """
         self.conn = get_db_connection()
         if self.conn:
-            self.logger.info("PostgresUploader connected to database.")
+            self.logger.info("PostgresUploader가 데이터베이스에 연결되었습니다.")
         else:
-            self.logger.error("PostgresUploader failed to connect to database.")
+            self.logger.error("PostgresUploader가 데이터베이스에 연결하지 못했습니다.")
 
     def is_connected(self):
-        """Returns True if the uploader is connected to PostgreSQL.
+        """업로더가 PostgreSQL에 연결되어 있으면 True를 반환합니다.
         """
         return self.conn is not None
 
     def get_historical_klines(self, symbol: str, limit: int = 100):
-        """Fetches historical kline data from the database.
+        """데이터베이스에서 과거 kline 데이터를 가져옵니다.
         """
         if not self.is_connected():
-            self.logger.error("Cannot fetch historical klines. PostgreSQL is not connected.")
+            self.logger.error("과거 kline을 가져올 수 없습니다. PostgreSQL에 연결되어 있지 않습니다.")
             return pd.DataFrame()
 
-        # The table name 'klines_1m' is hardcoded here.
+        # 'klines_1m' 테이블 이름이 여기에 하드코딩되어 있습니다.
         sql = "SELECT * FROM klines_1m WHERE symbol = %s ORDER BY timestamp DESC LIMIT %s"
         
         try:
-            # Fetch data into a DataFrame
+            # 데이터를 DataFrame으로 가져옵니다.
             df = pd.read_sql(sql, self.conn, params=(symbol, limit))
             
-            # The 'timestamp' column is set as the index
+            # 'timestamp' 열이 인덱스로 설정됩니다.
             df.set_index('timestamp', inplace=True)
             
-            # Sort the DataFrame by the timestamp index in ascending order
+            # timestamp 인덱스를 기준으로 DataFrame을 오름차순으로 정렬합니다.
             df.sort_index(inplace=True)
             
-            self.logger.info(f"Fetched {len(df)} historical klines for {symbol} from database.")
+            self.logger.info(f"데이터베이스에서 {symbol}에 대한 {len(df)}개의 과거 kline을 가져왔습니다.")
             return df
         except (Exception, psycopg2.Error) as error:
-            self.logger.error(f"Error fetching historical kline data: {error}")
+            self.logger.error(f"과거 kline 데이터를 가져오는 중 오류 발생: {error}")
             return pd.DataFrame()
 
     def upload_kline_data(self, kline_data: dict):
-        """Uploads processed kline data (with indicators) to klines_1m table.
+        """처리된 kline 데이터(지표 포함)를 klines_1m 테이블에 업로드합니다.
         """
         if not self.is_connected():
-            self.logger.error("Cannot upload kline data. PostgreSQL is not connected.")
+            self.logger.error("kline 데이터를 업로드할 수 없습니다. PostgreSQL에 연결되어 있지 않습니다.")
             return
 
         sql = """
@@ -77,15 +77,15 @@ class PostgresUploader:
                 kline_data.get('macd'), kline_data.get('macd_signal'), kline_data.get('macd_hist')
             ))
             self.conn.commit()
-            self.logger.debug(f"Uploaded kline data for {kline_data['symbol']} at {kline_data['timestamp']}")
+            self.logger.debug(f"{kline_data['timestamp']}에 {kline_data['symbol']}에 대한 kline 데이터를 업로드했습니다.")
         except (Exception, psycopg2.Error) as error:
-            self.logger.error(f"Error uploading kline data: {error}")
+            self.logger.error(f"kline 데이터 업로드 중 오류 발생: {error}")
 
     def upload_funding_rate(self, funding_rate_data: dict):
-        """Uploads funding rate data to funding_rates table.
+        """펀딩 비율 데이터를 funding_rates 테이블에 업로드합니다.
         """
         if not self.is_connected():
-            self.logger.error("Cannot upload funding rate. PostgreSQL is not connected.")
+            self.logger.error("펀딩 비율을 업로드할 수 없습니다. PostgreSQL에 연결되어 있지 않습니다.")
             return
 
         sql = """
@@ -101,15 +101,15 @@ class PostgresUploader:
                 funding_rate_data['funding_rate']
             ))
             self.conn.commit()
-            self.logger.debug(f"Uploaded funding rate for {funding_rate_data['symbol']} at {funding_rate_data['timestamp']}")
+            self.logger.debug(f"{funding_rate_data['timestamp']}에 {funding_rate_data['symbol']}에 대한 펀딩 비율을 업로드했습니다.")
         except (Exception, psycopg2.Error) as error:
-            self.logger.error(f"Error uploading funding rate: {error}")
+            self.logger.error(f"펀딩 비율 업로드 중 오류 발생: {error}")
 
     def upload_open_interest(self, open_interest_data: dict):
-        """Uploads open interest data to open_interest table.
+        """미결제 약정 데이터를 open_interest 테이블에 업로드합니다.
         """
         if not self.is_connected():
-            self.logger.error("Cannot upload open interest. PostgreSQL is not connected.")
+            self.logger.error("미결제 약정을 업로드할 수 없습니다. PostgreSQL에 연결되어 있지 않습니다.")
             return
 
         sql = """
@@ -125,27 +125,27 @@ class PostgresUploader:
                 open_interest_data['open_interest']
             ))
             self.conn.commit()
-            self.logger.debug(f"Uploaded open interest for {open_interest_data['symbol']} at {open_interest_data['timestamp']}")
+            self.logger.debug(f"{open_interest_data['timestamp']}에 {open_interest_data['symbol']}에 대한 미결제 약정을 업로드했습니다.")
         except (Exception, psycopg2.Error) as error:
-            self.logger.error(f"Error uploading open interest: {error}")
+            self.logger.error(f"미결제 약정 업로드 중 오류 발생: {error}")
 
     def close(self):
-        """Closes the database connection.
+        """데이터베이스 연결을 닫습니다.
         """
         if self.conn:
             self.conn.close()
-            self.logger.info("PostgresUploader database connection closed.")
+            self.logger.info("PostgresUploader 데이터베이스 연결이 닫혔습니다.")
 
-# Example Usage (for testing purposes)
+# 사용 예 (테스트 목적)
 if __name__ == '__main__':
     uploader = PostgresUploader()
     if uploader.is_connected():
-        # Example: Fetch historical data
+        # 예: 과거 데이터 가져오기
         historical_data = uploader.get_historical_klines('BTCUSDT', limit=5)
-        print("Historical data:")
+        print("과거 데이터:")
         print(historical_data)
 
-        # ... (rest of the example usage)
+        # ... (나머지 사용 예)
         uploader.close()
     else:
-        print("Failed to connect to PostgreSQL. Check .env and database status.")
+        print("PostgreSQL에 연결하지 못했습니다. .env 및 데이터베이스 상태를 확인하십시오.")

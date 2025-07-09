@@ -7,10 +7,10 @@ from src.utils.logger import get_logger
 load_dotenv()
 
 class RedisUploader:
-    """Handles connections and data uploading to a Redis server.
+    """Redis 서버에 대한 연결 및 데이터 업로드를 처리합니다.
     """
     def __init__(self, host=None, port=None, db=None, password=None):
-        """Initializes the Redis connection.
+        """Redis 연결을 초기화합니다.
         """
         self.host = host or os.getenv("REDIS_HOST", "localhost")
         self.port = port or int(os.getenv("REDIS_PORT", 6379))
@@ -21,20 +21,20 @@ class RedisUploader:
         self._connect()
 
     def _connect(self):
-        """Establishes a connection to the Redis server.
+        """Redis 서버에 대한 연결을 설정합니다.
         """
         try:
             self.redis_client = redis.Redis(
                 host=self.host, 
                 port=self.port, 
                 db=self.db,
-                password=self.password,  # Use the password for authentication
+                password=self.password,  # 인증에 비밀번호를 사용합니다.
                 decode_responses=True
             )
             self.redis_client.ping()
-            self.logger.info(f"Successfully connected to Redis at {self.host}:{self.port}")
+            self.logger.info(f"Redis에 성공적으로 연결되었습니다({self.host}:{self.port})")
         except redis.exceptions.ConnectionError as e:
-            self.logger.error(f"Failed to connect to Redis: {e}")
+            self.logger.error(f"Redis 연결에 실패했습니다: {e}")
             self.redis_client = None
 
     def is_connected(self):
@@ -42,26 +42,26 @@ class RedisUploader:
 
     def upload_json(self, key: str, data: dict):
         if not self.is_connected():
-            self.logger.error("Cannot upload data. Redis is not connected.")
+            self.logger.error("데이터를 업로드할 수 없습니다. Redis에 연결되어 있지 않습니다.")
             return
         
         try:
             self.redis_client.set(key, json.dumps(data))
-            self.logger.debug(f"Successfully uploaded JSON to key: {key}")
+            self.logger.debug(f"JSON을 키에 성공적으로 업로드했습니다: {key}")
         except Exception as e:
-            self.logger.error(f"Failed to upload JSON to key {key}: {e}")
+            self.logger.error(f"키 {key}에 JSON을 업로드하지 못했습니다: {e}")
 
     def upload_dataframe(self, key: str, df):
         if not self.is_connected():
-            self.logger.error("Cannot upload DataFrame. Redis is not connected.")
+            self.logger.error("DataFrame을 업로드할 수 없습니다. Redis에 연결되어 있지 않습니다.")
             return
         
         try:
             data = df.to_json(orient='records')
             self.redis_client.set(key, data)
-            self.logger.info(f"Successfully uploaded DataFrame to key: {key}")
+            self.logger.info(f"DataFrame을 키에 성공적으로 업로드했습니다: {key}")
         except Exception as e:
-            self.logger.error(f"Failed to upload DataFrame to key {key}: {e}")
+            self.logger.error(f"키 {key}에 DataFrame을 업로드하지 못했습니다: {e}")
 
 if __name__ == '__main__':
     uploader = RedisUploader()
@@ -70,4 +70,4 @@ if __name__ == '__main__':
         sample_dict = {"price": 70000, "symbol": "BTCUSDT"}
         uploader.upload_json("binance:ticker:btcusdt", sample_dict)
         retrieved_data = uploader.redis_client.get("binance:ticker:btcusdt")
-        print(f"Retrieved from Redis: {retrieved_data}")
+        print(f"Redis에서 검색됨: {retrieved_data}")
