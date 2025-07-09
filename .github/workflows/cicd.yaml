@@ -50,6 +50,7 @@ jobs:
 
             # systemd 서비스 재시작!
             sudo systemctl restart trading-scheduler
+            sudo systemctl restart binance-ws-client
 
             echo "Deployment and systemd service restart complete."
 
