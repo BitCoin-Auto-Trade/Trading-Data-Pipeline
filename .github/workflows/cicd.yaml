@@ -7,6 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Get current GitHub runner IP
         id: ip
@@ -25,7 +26,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: SSH Deploy
+      - name: SSH Deploy via systemd
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_GETBITCOIN_HOST }}
@@ -34,29 +35,23 @@ jobs:
           script: |
             set -ex
             cd /home/ubuntu/Trading-Data-Pipeline
+
+            # 최신 소스 받기
             git reset --hard
             git clean -fd
-            git pull origin main --no-rebase 
+            git pull origin main --no-rebase
 
+            # (필요하면 .env 파일 갱신)
             printf "%s" "${{ secrets.ENV }}" | base64 -d > .env
 
-            # Stop existing processes gracefully (if running)
-            echo "Stopping existing Python processes..."
-            pkill -f "python -m scheduler.run_jobs" || true
-            pkill -f "python -m src.collector.binance_ws_client" || true
-            sleep 5 # Give processes time to terminate
+            # 패키지 업데이트
+            /home/ubuntu/Trading-Data-Pipeline/venv/bin/pip install --upgrade pip
+            /home/ubuntu/Trading-Data-Pipeline/venv/bin/pip install -r requirements.txt
 
-            # Install/update Python dependencies
-            echo "Installing/updating Python dependencies..."
-            /usr/bin/python3 -m pip install --upgrade pip
-            /usr/bin/python3 -m pip install -r requirements.txt
+            # systemd 서비스 재시작!
+            sudo systemctl restart trading-scheduler
 
-            # Restart scheduler and websocket client in background
-            echo "Restarting scheduler and websocket client..."
-            nohup /usr/bin/python3 -m scheduler.run_jobs > scheduler.log 2>&1 &
-            nohup /usr/bin/python3 -m src.collector.binance_ws_client > ws_client.log 2>&1 &
-
-            echo "Deployment and service restart complete."
+            echo "Deployment and systemd service restart complete."
 
       - name: Revoke GitHub IP from port 22
         if: always()
