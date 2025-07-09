@@ -1,6 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
 import datetime
+import pandas as pd
 from src.collector.binance_client import BinanceClient
 from src.formatter.indicator_calculator import IndicatorCalculator
 from src.uploader.postgres_uploader import PostgresUploader
@@ -22,34 +23,43 @@ def fetch_and_process_binance_data():
         logger.error("PostgreSQL uploader is not connected. Skipping data upload.")
         return
 
-    # --- 1. Collector: Fetch raw data ---
-    # Fetch historical klines for the last 2 days (for testing historical data fetching)
-    end_date = datetime.datetime.now()
-    start_date = end_date - datetime.timedelta(days=2)
-    raw_klines = collector.get_historical_klines(
-        symbol, 
-        "1h", 
-        start_date.strftime('%Y-%m-%d'), 
-        end_date.strftime('%Y-%m-%d')
-    )
+    # --- 1. Fetch historical and new kline data ---
+    # Fetch last 100 klines from the database to have enough data for indicator calculation
+    historical_klines_df = uploader.get_historical_klines(symbol, limit=100)
 
-    raw_funding_rate = collector.get_funding_rate(symbol, limit=1)
-    raw_open_interest = collector.get_open_interest(symbol)
+    # Determine the start time for fetching new data to avoid duplicates
+    if not historical_klines_df.empty:
+        last_timestamp = historical_klines_df.index.max().to_pydatetime()
+        start_time = (last_timestamp + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        # If the database is empty, fetch the last 100 minutes of data
+        start_time = (datetime.datetime.now() - datetime.timedelta(minutes=100)).strftime('%Y-%m-%d %H:%M:%S')
+    
+    end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    new_raw_klines = collector.get_historical_klines(symbol, "1m", start_time, end_time)
 
     # --- 2. Formatter: Process kline data and calculate indicators ---
-    if raw_klines:
-        klines_df = formatter.format_klines(raw_klines)
+    if new_raw_klines:
+        new_klines_df = formatter.format_klines(new_raw_klines)
         
-        if klines_df is not None and not klines_df.empty:
-            klines_df = formatter.calculate_ema(klines_df, period=20)
-            klines_df = formatter.calculate_rsi(klines_df, period=14)
-            klines_df = formatter.calculate_macd(klines_df)
+        if new_klines_df is not None and not new_klines_df.empty:
+            # Combine historical data with new data
+            combined_df = pd.concat([historical_klines_df, new_klines_df])
+            # Remove duplicates, keeping the latest entry
+            combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
             
+            # Calculate indicators on the combined dataset
+            combined_df = formatter.calculate_ema(combined_df, period=20)
+            combined_df = formatter.calculate_rsi(combined_df, period=14)
+            combined_df = formatter.calculate_macd(combined_df)
+            
+            # Filter for only the new rows to be uploaded
+            rows_to_upload = combined_df[combined_df.index.isin(new_klines_df.index)]
+
             # --- 3. Uploader: Upload processed data to PostgreSQL ---
-            # Upload each row of the DataFrame to klines_1m table
-            for index, row in klines_df.iterrows():
+            for index, row in rows_to_upload.iterrows():
                 kline_data = {
-                    'timestamp': index.to_pydatetime(), # Convert pandas timestamp to python datetime
+                    'timestamp': index.to_pydatetime(),
                     'symbol': symbol,
                     'open': row['open'],
                     'high': row['high'],
@@ -63,13 +73,14 @@ def fetch_and_process_binance_data():
                     'macd_hist': row.get('macd_hist')
                 }
                 uploader.upload_kline_data(kline_data)
-            logger.info(f"Uploaded {len(klines_df)} kline records to PostgreSQL.")
+            logger.info(f"Uploaded {len(rows_to_upload)} new kline records to PostgreSQL.")
         else:
-            logger.warning("Could not fetch kline data or DataFrame is empty. Skipping kline upload.")
+            logger.warning("Kline DataFrame is empty after formatting. Skipping kline upload.")
     else:
-        logger.warning("No raw kline data fetched. Skipping kline processing and upload.")
+        logger.info("No new kline data fetched from Binance.")
 
-    # Upload Funding Rate
+    # --- Funding Rate and Open Interest (unchanged) ---
+    raw_funding_rate = collector.get_funding_rate(symbol, limit=1)
     if raw_funding_rate and len(raw_funding_rate) > 0:
         latest_funding_rate = raw_funding_rate[0]
         funding_rate_data = {
@@ -79,10 +90,8 @@ def fetch_and_process_binance_data():
         }
         uploader.upload_funding_rate(funding_rate_data)
         logger.info(f"Uploaded latest funding rate for {symbol} to PostgreSQL.")
-    else:
-        logger.warning("No funding rate data fetched. Skipping funding rate upload.")
 
-    # Upload Open Interest
+    raw_open_interest = collector.get_open_interest(symbol)
     if raw_open_interest:
         open_interest_data = {
             'timestamp': datetime.datetime.fromtimestamp(raw_open_interest['time'] / 1000),
@@ -91,8 +100,6 @@ def fetch_and_process_binance_data():
         }
         uploader.upload_open_interest(open_interest_data)
         logger.info(f"Uploaded latest open interest for {symbol} to PostgreSQL.")
-    else:
-        logger.warning("No open interest data fetched. Skipping open interest upload.")
 
     logger.info("Binance data processing and upload job finished.")
 

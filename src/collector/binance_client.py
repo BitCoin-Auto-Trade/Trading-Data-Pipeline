@@ -53,8 +53,8 @@ class BinanceClient:
 
     def get_historical_klines(self, symbol: str, interval: str, start_date: str, end_date: str):
         self.logger.info(f"Fetching historical klines for {symbol} from {start_date} to {end_date}")
-        start_ts = int(datetime.datetime.strptime(start_date, '%Y-%m-%d').timestamp() * 1000)
-        end_ts = int(datetime.datetime.strptime(end_date, '%Y-%m-%d').timestamp() * 1000)
+        start_ts = int(datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S').timestamp() * 1000)
+        end_ts = int(datetime.datetime.strptime(end_date, '%Y-%m-%d %H:%M:%S').timestamp() * 1000)
         
         all_klines = []
         while start_ts < end_ts:

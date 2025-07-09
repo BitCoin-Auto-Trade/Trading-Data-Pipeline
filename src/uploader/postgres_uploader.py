@@ -1,4 +1,5 @@
 import psycopg2
+import pandas as pd
 from src.utils.logger import get_logger
 from src.utils.db_init import get_db_connection # Reusing the connection function
 
@@ -23,6 +24,32 @@ class PostgresUploader:
         """Returns True if the uploader is connected to PostgreSQL.
         """
         return self.conn is not None
+
+    def get_historical_klines(self, symbol: str, limit: int = 100):
+        """Fetches historical kline data from the database.
+        """
+        if not self.is_connected():
+            self.logger.error("Cannot fetch historical klines. PostgreSQL is not connected.")
+            return pd.DataFrame()
+
+        # The table name 'klines_1m' is hardcoded here.
+        sql = "SELECT * FROM klines_1m WHERE symbol = %s ORDER BY timestamp DESC LIMIT %s"
+        
+        try:
+            # Fetch data into a DataFrame
+            df = pd.read_sql(sql, self.conn, params=(symbol, limit))
+            
+            # The 'timestamp' column is set as the index
+            df.set_index('timestamp', inplace=True)
+            
+            # Sort the DataFrame by the timestamp index in ascending order
+            df.sort_index(inplace=True)
+            
+            self.logger.info(f"Fetched {len(df)} historical klines for {symbol} from database.")
+            return df
+        except (Exception, psycopg2.Error) as error:
+            self.logger.error(f"Error fetching historical kline data: {error}")
+            return pd.DataFrame()
 
     def upload_kline_data(self, kline_data: dict):
         """Uploads processed kline data (with indicators) to klines_1m table.
@@ -113,39 +140,12 @@ class PostgresUploader:
 if __name__ == '__main__':
     uploader = PostgresUploader()
     if uploader.is_connected():
-        # Example kline data
-        kline_example = {
-            'timestamp': datetime.datetime.now(),
-            'symbol': 'BTCUSDT',
-            'open': 100000.0,
-            'high': 101000.0,
-            'low': 99000.0,
-            'close': 100500.0,
-            'volume': 100.0,
-            'ema_20': 99900.0,
-            'rsi_14': 60.0,
-            'macd': 100.0,
-            'macd_signal': 90.0,
-            'macd_hist': 10.0
-        }
-        uploader.upload_kline_data(kline_example)
+        # Example: Fetch historical data
+        historical_data = uploader.get_historical_klines('BTCUSDT', limit=5)
+        print("Historical data:")
+        print(historical_data)
 
-        # Example funding rate data
-        funding_rate_example = {
-            'timestamp': datetime.datetime.now(),
-            'symbol': 'BTCUSDT',
-            'funding_rate': 0.0001
-        }
-        uploader.upload_funding_rate(funding_rate_example)
-
-        # Example open interest data
-        open_interest_example = {
-            'timestamp': datetime.datetime.now(),
-            'symbol': 'BTCUSDT',
-            'open_interest': 1000000000.0
-        }
-        uploader.upload_open_interest(open_interest_example)
-
+        # ... (rest of the example usage)
         uploader.close()
     else:
         print("Failed to connect to PostgreSQL. Check .env and database status.")
