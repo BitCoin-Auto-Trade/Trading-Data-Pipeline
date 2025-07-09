@@ -40,26 +40,21 @@ jobs:
 
             printf "%s" "${{ secrets.ENV }}" | base64 -d > .env
 
+            # Stop existing processes gracefully (if running)
             echo "Stopping existing Python processes..."
-            PIDS=$(pgrep -f "python -m scheduler.run_jobs")
-            if [ -n "$PIDS" ]; then
-              echo "Killing run_jobs: $PIDS"
-              kill $PIDS
-            fi
-            PIDS=$(pgrep -f "python -m src.collector.binance_ws_client")
-            if [ -n "$PIDS" ]; then
-              echo "Killing ws_client: $PIDS"
-              kill $PIDS
-            fi
-            sleep 5
+            pkill -f "python -m scheduler.run_jobs" || true
+            pkill -f "python -m src.collector.binance_ws_client" || true
+            sleep 5 # Give processes time to terminate
 
+            # Install/update Python dependencies
             echo "Installing/updating Python dependencies..."
             /usr/bin/python3 -m pip install --upgrade pip
             /usr/bin/python3 -m pip install -r requirements.txt
 
+            # Restart scheduler and websocket client in background
             echo "Restarting scheduler and websocket client..."
-            nohup setsid /usr/bin/python3 -m scheduler.run_jobs > scheduler.log 2>&1 &
-            nohup setsid /usr/bin/python3 -m src.collector.binance_ws_client > ws_client.log 2>&1 &
+            nohup /usr/bin/python3 -m scheduler.run_jobs > scheduler.log 2>&1 &
+            nohup /usr/bin/python3 -m src.collector.binance_ws_client > ws_client.log 2>&1 &
 
             echo "Deployment and service restart complete."
 
