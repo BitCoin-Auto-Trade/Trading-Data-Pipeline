@@ -23,7 +23,7 @@ def get_db_connection():
         return None
 
 def create_tables():
-    """PostgreSQL 데이터베이스에 테이블을 생성합니다."""
+    """PostgreSQL 데이터베이스에 테이블을 생성하고 업데이트합니다."""
     commands = (
         """
         CREATE TABLE IF NOT EXISTS klines_1m (
@@ -31,8 +31,7 @@ def create_tables():
             symbol VARCHAR(20) NOT NULL,
             open NUMERIC, high NUMERIC, low NUMERIC, close NUMERIC, volume NUMERIC,
             ema_20 NUMERIC, rsi_14 NUMERIC,
-            macd NUMERIC, macd_signal NUMERIC, macd_hist NUMERIC,
-            atr_14 NUMERIC
+            macd NUMERIC, macd_signal NUMERIC, macd_hist NUMERIC
         )
         """,
         """
@@ -48,7 +47,8 @@ def create_tables():
             symbol VARCHAR(20) NOT NULL,
             open_interest NUMERIC
         )
-        """
+        """,
+        "ALTER TABLE klines_1m ADD COLUMN IF NOT EXISTS atr_14 NUMERIC;"
     )
     
     conn = None
@@ -63,9 +63,9 @@ def create_tables():
         
         cur.close()
         conn.commit()
-        logger.info("모든 테이블이 성공적으로 생성되었거나 이미 존재합니다.")
+        logger.info("모든 테이블이 성공적으로 생성되었거나 이미 존재하며, 필요한 스키마 변경이 적용되었습니다.")
     except (Exception, psycopg2.DatabaseError) as error:
-        logger.error(f"테이블 생성 중 오류 발생: {error}")
+        logger.error(f"테이블 생성 또는 수정 중 오류 발생: {error}")
     finally:
         if conn is not None:
             conn.close()
