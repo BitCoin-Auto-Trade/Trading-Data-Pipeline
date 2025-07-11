@@ -1,7 +1,7 @@
 import psycopg2
 import pandas as pd
 from src.utils.logger import get_logger
-from src.utils.db_init import get_db_connection # Reusing the connection function
+from src.utils.db_init import get_db_connection
 
 class PostgresUploader:
     """PostgreSQL 데이터베이스에 데이터 업로드를 처리합니다.
