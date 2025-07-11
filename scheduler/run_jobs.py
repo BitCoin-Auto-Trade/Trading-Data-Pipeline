@@ -107,9 +107,9 @@ def start_scheduler():
     """작업 스케줄러를 초기화하고 시작합니다.
     """
     scheduler = BackgroundScheduler()
-    scheduler.add_job(fetch_and_process_binance_data, 'interval', minutes=1)
+    scheduler.add_job(fetch_and_process_binance_data, 'cron', minute='*')
     scheduler.start()
-    logger.info("스케줄러가 시작되었습니다. 1분마다 데이터를 가져옵니다.")
+    logger.info("스케줄러가 시작되었습니다. 매 분마다 데이터를 가져옵니다.")
 
     try:
         while True:

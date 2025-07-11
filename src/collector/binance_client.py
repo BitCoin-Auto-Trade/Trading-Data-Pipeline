@@ -5,7 +5,6 @@ import hashlib
 import datetime
 from urllib.parse import urlencode
 import requests
-import pandas as pd
 from dotenv import load_dotenv
 from src.utils.logger import get_logger
 
