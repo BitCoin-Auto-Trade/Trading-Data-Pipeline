@@ -61,12 +61,13 @@ class PostgresUploader:
         sql = """
         INSERT INTO klines_1m (
             timestamp, symbol, open, high, low, close, volume,
-            ema_20, rsi_14, macd, macd_signal, macd_hist
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ema_20, rsi_14, macd, macd_signal, macd_hist, atr_14
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (timestamp) DO UPDATE SET
             open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume,
             ema_20 = EXCLUDED.ema_20, rsi_14 = EXCLUDED.rsi_14,
-            macd = EXCLUDED.macd, macd_signal = EXCLUDED.macd_signal, macd_hist = EXCLUDED.macd_hist
+            macd = EXCLUDED.macd, macd_signal = EXCLUDED.macd_signal, macd_hist = EXCLUDED.macd_hist,
+            atr_14 = EXCLUDED.atr_14
         """
         try:
             cur = self.conn.cursor()
@@ -74,7 +75,7 @@ class PostgresUploader:
                 kline_data['timestamp'], kline_data['symbol'],
                 kline_data['open'], kline_data['high'], kline_data['low'], kline_data['close'], kline_data['volume'],
                 kline_data.get('ema_20'), kline_data.get('rsi_14'),
-                kline_data.get('macd'), kline_data.get('macd_signal'), kline_data.get('macd_hist')
+                kline_data.get('macd'), kline_data.get('macd_signal'), kline_data.get('macd_hist'), kline_data.get('atr_14')
             ))
             self.conn.commit()
             self.logger.debug(f"{kline_data['timestamp']}에 {kline_data['symbol']}에 대한 kline 데이터를 업로드했습니다.")

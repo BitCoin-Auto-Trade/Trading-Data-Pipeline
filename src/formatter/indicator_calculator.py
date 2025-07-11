@@ -69,3 +69,17 @@ class IndicatorCalculator:
         
         self.logger.info(f"{len(klines_df)}개의 데이터 포인트에 대해 MACD({short_period},{long_period},{signal_period})를 계산했습니다.")
         return klines_df
+
+    def calculate_atr(self, klines_df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
+        """Average True Range (ATR)를 계산합니다.
+        """
+        high_low = klines_df['high'] - klines_df['low']
+        high_close = (klines_df['high'] - klines_df['close'].shift()).abs()
+        low_close = (klines_df['low'] - klines_df['close'].shift()).abs()
+        
+        tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+        
+        klines_df[f'atr_{period}'] = tr.ewm(span=period, adjust=False).mean()
+        
+        self.logger.info(f"{len(klines_df)}개의 데이터 포인트에 대해 ATR({period})를 계산했습니다.")
+        return klines_df

@@ -31,7 +31,8 @@ def create_tables():
             symbol VARCHAR(20) NOT NULL,
             open NUMERIC, high NUMERIC, low NUMERIC, close NUMERIC, volume NUMERIC,
             ema_20 NUMERIC, rsi_14 NUMERIC,
-            macd NUMERIC, macd_signal NUMERIC, macd_hist NUMERIC
+            macd NUMERIC, macd_signal NUMERIC, macd_hist NUMERIC,
+            atr_14 NUMERIC
         )
         """,
         """

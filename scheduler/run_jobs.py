@@ -52,6 +52,7 @@ def fetch_and_process_binance_data():
             combined_df = formatter.calculate_ema(combined_df, period=20)
             combined_df = formatter.calculate_rsi(combined_df, period=14)
             combined_df = formatter.calculate_macd(combined_df)
+            combined_df = formatter.calculate_atr(combined_df, period=14)
             
             # 업로드할 새 행만 필터링합니다.
             rows_to_upload = combined_df[combined_df.index.isin(new_klines_df.index)]
@@ -70,7 +71,8 @@ def fetch_and_process_binance_data():
                     'rsi_14': row.get('rsi_14'),
                     'macd': row.get('macd'),
                     'macd_signal': row.get('macd_signal'),
-                    'macd_hist': row.get('macd_hist')
+                    'macd_hist': row.get('macd_hist'),
+                    'atr_14': row.get('atr_14')
                 }
                 uploader.upload_kline_data(kline_data)
             logger.info(f"{len(rows_to_upload)}개의 새로운 kline 레코드를 PostgreSQL에 업로드했습니다.")
