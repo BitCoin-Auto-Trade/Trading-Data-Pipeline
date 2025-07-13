@@ -35,7 +35,8 @@ def fetch_and_process_binance_data():
         # 데이터베이스가 비어 있으면 마지막 200분 분량의 데이터를 가져옵니다.
         start_time = (datetime.datetime.now() - datetime.timedelta(minutes=200)).strftime('%Y-%m-%d %H:%M:%S')
     
-    end_time = datetime.datetime.now().replace(second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')
+    # 현재 분이 시작되기 직전까지의 데이터만 가져오도록 end_time을 설정합니다.
+    end_time = (datetime.datetime.now().replace(second=0, microsecond=0) - datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')
     new_raw_klines = collector.get_historical_klines(symbol, "1m", start_time, end_time)
 
     # --- 2. 포맷터: kline 데이터를 처리하고 지표를 계산합니다 ---
