@@ -91,10 +91,10 @@ class IndicatorCalculator:
         df['up_move'] = df['high'].diff()
         df['down_move'] = -df['low'].diff()
         
-        df['plus_dm'] = 0
+        df['plus_dm'] = 0.0
         df.loc[(df['up_move'] > df['down_move']) & (df['up_move'] > 0), 'plus_dm'] = df['up_move']
         
-        df['minus_dm'] = 0
+        df['minus_dm'] = 0.0
         df.loc[(df['down_move'] > df['up_move']) & (df['down_move'] > 0), 'minus_dm'] = df['down_move']
         
         tr = pd.concat([
