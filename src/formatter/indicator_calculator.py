@@ -83,3 +83,65 @@ class IndicatorCalculator:
         
         self.logger.info(f"{len(klines_df)}개의 데이터 포인트에 대해 ATR({period})를 계산했습니다.")
         return klines_df
+
+    def calculate_adx(self, klines_df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
+        """Average Directional Index (ADX)를 계산합니다.
+        """
+        df = klines_df.copy()
+        df['up_move'] = df['high'].diff()
+        df['down_move'] = -df['low'].diff()
+        
+        df['plus_dm'] = 0
+        df.loc[(df['up_move'] > df['down_move']) & (df['up_move'] > 0), 'plus_dm'] = df['up_move']
+        
+        df['minus_dm'] = 0
+        df.loc[(df['down_move'] > df['up_move']) & (df['down_move'] > 0), 'minus_dm'] = df['down_move']
+        
+        tr = pd.concat([
+            df['high'] - df['low'],
+            (df['high'] - df['close'].shift()).abs(),
+            (df['low'] - df['close'].shift()).abs()
+        ], axis=1).max(axis=1)
+        
+        atr = tr.ewm(span=period, adjust=False).mean()
+        
+        plus_di = 100 * (df['plus_dm'].ewm(span=period, adjust=False).mean() / atr)
+        minus_di = 100 * (df['minus_dm'].ewm(span=period, adjust=False).mean() / atr)
+        
+        dx = 100 * (abs(plus_di - minus_di) / (plus_di + minus_di))
+        
+        klines_df['adx'] = dx.ewm(span=period, adjust=False).mean()
+        self.logger.info(f"{len(klines_df)}개의 데이터 포인트에 대해 ADX({period})를 계산했습니다.")
+        return klines_df
+
+    def calculate_sma(self, klines_df: pd.DataFrame, period: int) -> pd.DataFrame:
+        """Simple Moving Average (SMA)를 계산합니다.
+        """
+        klines_df[f'sma_{period}'] = klines_df['close'].rolling(window=period).mean()
+        self.logger.info(f"{len(klines_df)}개의 데이터 포인트에 대해 SMA({period})를 계산했습니다.")
+        return klines_df
+
+    def calculate_bollinger_bands(self, klines_df: pd.DataFrame, period: int = 20, std_dev: int = 2) -> pd.DataFrame:
+        """Bollinger Bands를 계산합니다.
+        """
+        sma = klines_df['close'].rolling(window=period).mean()
+        std = klines_df['close'].rolling(window=period).std()
+        
+        klines_df['bb_upper'] = sma + (std * std_dev)
+        klines_df['bb_middle'] = sma
+        klines_df['bb_lower'] = sma - (std * std_dev)
+        
+        self.logger.info(f"{len(klines_df)}개의 데이터 포인트에 대해 Bollinger Bands({period}, {std_dev})를 계산했습니다.")
+        return klines_df
+
+    def calculate_stochastic_oscillator(self, klines_df: pd.DataFrame, k_period: int = 14, d_period: int = 3) -> pd.DataFrame:
+        """Stochastic Oscillator를 계산합니다.
+        """
+        low_min = klines_df['low'].rolling(window=k_period).min()
+        high_max = klines_df['high'].rolling(window=k_period).max()
+        
+        klines_df['stoch_k'] = 100 * ((klines_df['close'] - low_min) / (high_max - low_min))
+        klines_df['stoch_d'] = klines_df['stoch_k'].rolling(window=d_period).mean()
+        
+        self.logger.info(f"{len(klines_df)}개의 데이터 포인트에 대해 Stochastic Oscillator({k_period}, {d_period})를 계산했습니다.")
+        return klines_df

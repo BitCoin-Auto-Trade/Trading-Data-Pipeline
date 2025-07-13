@@ -27,11 +27,28 @@ def create_tables():
     commands = (
         """
         CREATE TABLE IF NOT EXISTS klines_1m (
-            timestamp TIMESTAMPTZ PRIMARY KEY,
+            timestamp TIMESTAMPTZ NOT NULL,
             symbol VARCHAR(20) NOT NULL,
-            open NUMERIC, high NUMERIC, low NUMERIC, close NUMERIC, volume NUMERIC,
-            ema_20 NUMERIC, rsi_14 NUMERIC,
-            macd NUMERIC, macd_signal NUMERIC, macd_hist NUMERIC
+            open NUMERIC,
+            high NUMERIC,
+            low NUMERIC,
+            close NUMERIC,
+            volume NUMERIC,
+            ema_20 NUMERIC,
+            rsi_14 NUMERIC,
+            macd NUMERIC,
+            macd_signal NUMERIC,
+            macd_hist NUMERIC,
+            atr NUMERIC,
+            adx NUMERIC,
+            sma_50 NUMERIC,
+            sma_200 NUMERIC,
+            bb_upper NUMERIC,
+            bb_middle NUMERIC,
+            bb_lower NUMERIC,
+            stoch_k NUMERIC,
+            stoch_d NUMERIC,
+            PRIMARY KEY (timestamp, symbol)
         )
         """,
         """
@@ -47,8 +64,7 @@ def create_tables():
             symbol VARCHAR(20) NOT NULL,
             open_interest NUMERIC
         )
-        """,
-        "ALTER TABLE klines_1m ADD COLUMN IF NOT EXISTS atr_14 NUMERIC;"
+        """
     )
     
     conn = None

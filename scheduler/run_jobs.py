@@ -53,6 +53,11 @@ def fetch_and_process_binance_data():
             combined_df = formatter.calculate_rsi(combined_df, period=14)
             combined_df = formatter.calculate_macd(combined_df)
             combined_df = formatter.calculate_atr(combined_df, period=14)
+            combined_df = formatter.calculate_adx(combined_df, period=14)
+            combined_df = formatter.calculate_sma(combined_df, period=50)
+            combined_df = formatter.calculate_sma(combined_df, period=200)
+            combined_df = formatter.calculate_bollinger_bands(combined_df, period=20)
+            combined_df = formatter.calculate_stochastic_oscillator(combined_df, k_period=14, d_period=3)
             
             # 업로드할 새 행만 필터링합니다.
             rows_to_upload = combined_df[combined_df.index.isin(new_klines_df.index)]
@@ -72,7 +77,15 @@ def fetch_and_process_binance_data():
                     'macd': row.get('macd'),
                     'macd_signal': row.get('macd_signal'),
                     'macd_hist': row.get('macd_hist'),
-                    'atr_14': row.get('atr_14')
+                    'atr': row.get('atr_14'),
+                    'adx': row.get('adx'),
+                    'sma_50': row.get('sma_50'),
+                    'sma_200': row.get('sma_200'),
+                    'bb_upper': row.get('bb_upper'),
+                    'bb_middle': row.get('bb_middle'),
+                    'bb_lower': row.get('bb_lower'),
+                    'stoch_k': row.get('stoch_k'),
+                    'stoch_d': row.get('stoch_d')
                 }
                 uploader.upload_kline_data(kline_data)
             logger.info(f"{len(rows_to_upload)}개의 새로운 kline 레코드를 PostgreSQL에 업로드했습니다.")
