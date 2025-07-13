@@ -24,16 +24,16 @@ def fetch_and_process_binance_data():
         return
 
     # --- 1. 과거 및 신규 kline 데이터 가져오기 ---
-    # 지표 계산에 충분한 데이터를 확보하기 위해 데이터베이스에서 마지막 100개의 kline을 가져옵니다.
-    historical_klines_df = uploader.get_historical_klines(symbol, limit=100)
+    # 지표 계산에 충분한 데이터를 확보하기 위해 데이터베이스에서 마지막 200개의 kline을 가져옵니다.
+    historical_klines_df = uploader.get_historical_klines(symbol, limit=200)
 
     # 중복을 피하기 위해 새 데이터 가져오기 시작 시간을 결정합니다.
     if not historical_klines_df.empty:
         last_timestamp = historical_klines_df.index.max().to_pydatetime()
         start_time = (last_timestamp + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
     else:
-        # 데이터베이스가 비어 있으면 마지막 100분 분량의 데이터를 가져옵니다.
-        start_time = (datetime.datetime.now() - datetime.timedelta(minutes=100)).strftime('%Y-%m-%d %H:%M:%S')
+        # 데이터베이스가 비어 있으면 마지막 200분 분량의 데이터를 가져옵니다.
+        start_time = (datetime.datetime.now() - datetime.timedelta(minutes=200)).strftime('%Y-%m-%d %H:%M:%S')
     
     end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     new_raw_klines = collector.get_historical_klines(symbol, "1m", start_time, end_time)
@@ -122,7 +122,7 @@ def start_scheduler():
     """작업 스케줄러를 초기화하고 시작합니다.
     """
     scheduler = BackgroundScheduler()
-    scheduler.add_job(fetch_and_process_binance_data, 'cron', minute='*')
+    scheduler.add_job(fetch_and_process_binance_data, 'cron', minute='*', second=3)
     scheduler.start()
     logger.info("스케줄러가 시작되었습니다. 매 분마다 데이터를 가져옵니다.")
 
