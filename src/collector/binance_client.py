@@ -64,7 +64,7 @@ class ResilientBinanceClient:
             total=self.max_retries,
             backoff_factor=self.backoff_factor,
             status_forcelist=[408, 429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS", "TRACE"]
+            allowed_methods=["HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS", "TRACE"]
         )
         
         adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=20)
