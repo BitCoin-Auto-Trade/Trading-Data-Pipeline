@@ -48,9 +48,6 @@ jobs:
             /home/ubuntu/Trading-Data-Pipeline/venv/bin/pip install --upgrade pip
             /home/ubuntu/Trading-Data-Pipeline/venv/bin/pip install -r requirements.txt
 
-            # 데이터베이스 스키마 업데이트
-            PYTHONPATH=. /home/ubuntu/Trading-Data-Pipeline/venv/bin/python src/utils/db_init.py
-
             # systemd 서비스 재시작!
             sudo systemctl restart trading-scheduler
             sudo systemctl restart binance-ws-client
