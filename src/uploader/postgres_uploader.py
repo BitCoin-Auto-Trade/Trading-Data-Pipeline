@@ -44,7 +44,7 @@ class OptimizedPostgresUploader:
             )
             self.logger.info(f"PostgreSQL 연결 풀이 성공적으로 생성되었습니다 ({self.min_connections}-{self.max_connections})")
             
-        except psycopg2.Error as e:
+        except Exception as e:
             self.logger.error(f"연결 풀 생성 실패: {e}")
             self.connection_pool = None
     

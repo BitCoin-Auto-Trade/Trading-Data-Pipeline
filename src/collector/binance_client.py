@@ -272,7 +272,7 @@ class ResilientBinanceClient:
             valid_klines = []
             for kline in klines:
                 if isinstance(kline, list) and len(kline) >= 12:
-                    valid_klines.append(kline)
+                    valid_klines.append(kline[:12])
                 else:
                     self.logger.warning(f"유효하지 않은 kline 데이터: {kline}")
             
