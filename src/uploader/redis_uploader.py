@@ -7,8 +7,7 @@ from src.utils.logger import get_logger
 load_dotenv()
 
 class RedisUploader:
-    """Redis 서버에 대한 연결 및 데이터 업로드를 처리합니다.
-    """
+    """Redis 데이터 업로더"""
     def __init__(self, host=None, port=None, db=None, password=None):
         """Redis 연결을 초기화합니다.
         """

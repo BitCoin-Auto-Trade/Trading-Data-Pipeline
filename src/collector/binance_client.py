@@ -1,6 +1,5 @@
 """
-안정성과 신뢰성이 강화된 바이낸스 클라이언트
-- 재시도 로직, 레이트 리미트, 오류 처리 강화
+바이낸스 선물 API 클라이언트
 """
 import os
 import time
@@ -18,7 +17,7 @@ from src.utils.logger import get_logger
 load_dotenv()
 
 class ResilientBinanceClient:
-    """안정성이 강화된 바이낸스 선물 API 클라이언트"""
+    """바이낸스 선물 API 클라이언트"""
     
     BASE_URL = "https://fapi.binance.com"
     DATA_URL = "https://fapi.binance.com/futures/data"
@@ -425,9 +424,6 @@ class ResilientBinanceClient:
         if self.session:
             self.session.close()
             self.logger.info("HTTP 세션이 종료되었습니다.")
-
-# 기존 클래스명 호환성 유지
-BinanceClient = ResilientBinanceClient
 
 # 사용 예제 및 테스트
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ from src.utils.logger import get_logger
 from psycopg2 import pool
 
 class OptimizedPostgresUploader:
-    """성능 최적화된 PostgreSQL 업로더"""
+    """PostgreSQL 업로더"""
     
     def __init__(self, min_connections=1, max_connections=5):
         self.logger = get_logger(__name__)
@@ -438,9 +438,6 @@ class OptimizedPostgresUploader:
         if self.connection_pool:
             self.connection_pool.closeall()
             self.logger.info("PostgreSQL 연결 풀이 종료되었습니다.")
-
-# 기존 클래스명 호환성 유지
-PostgresUploader = OptimizedPostgresUploader
 
 # 사용 예제
 if __name__ == '__main__':

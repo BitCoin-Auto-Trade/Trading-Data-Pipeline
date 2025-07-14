@@ -27,7 +27,7 @@ class IndicatorState:
             self.atr_tr_values = []
 
 class OptimizedIndicatorCalculator:
-    """메모리 효율적이고 증분 계산을 지원하는 지표 계산기"""
+    """기술적 지표 계산기"""
     
     def __init__(self):
         self.logger = get_logger(__name__)
@@ -575,9 +575,6 @@ class OptimizedIndicatorCalculator:
     def calculate_stochastic_oscillator(self, df: pd.DataFrame, k_period: int = 14, d_period: int = 3) -> pd.DataFrame:
         """호환성 유지용 스토캐스틱 계산"""
         return self.calculate_stochastic_optimized(df, k_period, d_period)
-
-# 기존 클래스명 호환성 유지
-IndicatorCalculator = OptimizedIndicatorCalculator
 
 # 사용 예제
 if __name__ == '__main__':

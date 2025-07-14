@@ -37,7 +37,7 @@ class ConnectionStats:
         return time_since_last < 60  # 60초 이내 메시지 수신 시 건강함
 
 class RobustBinanceWebSocketClient:
-    """안정성이 강화된 바이낸스 WebSocket 클라이언트"""
+    """바이낸스 WebSocket 클라이언트"""
     
     BASE_URL = "wss://fstream.binance.com/stream?streams="
     
@@ -553,9 +553,6 @@ class EnhancedBinanceWebSocketClient:
             "symbols": self.symbols,
             "streams": self.streams
         }
-
-# 기존 클래스명 호환성 유지
-BinanceWebsocketClient = EnhancedBinanceWebSocketClient
 
 # 사용 예제
 if __name__ == '__main__':
