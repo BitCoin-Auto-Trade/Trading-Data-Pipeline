@@ -13,7 +13,7 @@ from src.utils.logger import get_logger
 
 logger = get_logger("scheduler")
 
-class ImprovedScheduler:
+class TradingDataScheduler:
     """개선된 스케줄러 클래스"""
     
     def __init__(self):
@@ -44,7 +44,7 @@ class ImprovedScheduler:
             return False
         return True
     
-    def fetch_and_process_binance_data(self):
+    def run_data_pipeline(self):
         """
         겹침 방지 로직이 있는 안전한 데이터 처리
         """
@@ -333,20 +333,19 @@ class ImprovedScheduler:
         }
 
 
-# 전역 스케줄러 인스턴스
-improved_scheduler = ImprovedScheduler()
+data_scheduler = TradingDataScheduler()
 
-def start_improved_scheduler():
+def start_scheduler():
     """개선된 스케줄러 시작"""
     scheduler = BackgroundScheduler()
     
     # 겹침 방지가 적용된 작업 등록
     scheduler.add_job(
-        improved_scheduler.fetch_and_process_binance_data, 
+        data_scheduler.run_data_pipeline, 
         'cron', 
         minute='*', 
         second=5,  # 5초에 실행
-        id="improved_binance_data_processing",
+        id="binance_data_processing",
         max_instances=1  # 동시 실행 방지
     )
     
@@ -355,15 +354,17 @@ def start_improved_scheduler():
     
     return scheduler
 
-if __name__ == "__main__":
-    scheduler = start_improved_scheduler()
+def main():
+    """메인 함수: 스케줄러를 시작하고 실행합니다."""
+    scheduler = start_scheduler()
     
     try:
+        # 메인 스레드가 종료되지 않도록 유지하여 백그라운드 스케줄러가 계속 실행되게 합니다.
         while True:
             time.sleep(10)
             
-            # 10초마다 상태 체크 (선택사항)
-            status = job_runner.get_status()
+            # 선택 사항: 10초마다 스케줄러 상태를 확인합니다.
+            status = data_scheduler.get_status()
             if status["consecutive_errors"] >= 3:
                 logger.critical("연속 오류가 3회를 초과했습니다. 스케줄러를 중단합니다.")
                 break
@@ -371,3 +372,6 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown()
         logger.info("스케줄러가 중지되었습니다.")
+
+if __name__ == "__main__":
+    main()
