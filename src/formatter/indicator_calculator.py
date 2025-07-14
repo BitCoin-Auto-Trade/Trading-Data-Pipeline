@@ -74,8 +74,11 @@ class IndicatorCalculator:
                 'open_time', 'open', 'high', 'low', 'close', 'volume', 
                 'close_time', 'quote_asset_volume', 'number_of_trades',
                 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-            ], dtype={
-                'open': 'float32',  # 메모리 절약을 위해 float32 사용
+            ])
+            
+            # 메모리 절약을 위해 데이터 타입 변환
+            df = df.astype({
+                'open': 'float32',
                 'high': 'float32',
                 'low': 'float32', 
                 'close': 'float32',
