@@ -441,8 +441,8 @@ class PostgresUploader:
 
 # 사용 예제
 if __name__ == '__main__':
-    uploader = OptimizedPostgresUploader()
-    
+    uploader = PostgresUploader()
+
     if uploader.is_connected():
         # 성능 통계 확인
         stats = uploader.get_performance_stats()

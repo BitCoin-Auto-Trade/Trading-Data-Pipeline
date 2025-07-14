@@ -427,8 +427,8 @@ class BinanceClient:
 
 # 사용 예제 및 테스트
 if __name__ == '__main__':
-    client = ResilientBinanceClient()
-    
+    client = BinanceClient()
+
     # 헬스 체크
     if client.health_check():
         print("API 연결 성공")

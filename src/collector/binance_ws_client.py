@@ -510,7 +510,7 @@ class EnhancedBinanceWebSocketClient:
         
         # 컴포넌트 초기화
         self.data_handler = DataHandler()
-        self.ws_client = WebSocketClient(
+        self.ws_client = RobustBinanceWebSocketClient(
             streams=self.streams,
             on_message_callback=self.data_handler.handle_and_upload_message
         )

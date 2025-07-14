@@ -592,9 +592,9 @@ if __name__ == '__main__':
         'close': np.random.randn(100).cumsum() + 100,
         'volume': np.random.randint(1000, 10000, 100)
     }, index=dates)
-    
-    calculator = OptimizedIndicatorCalculator()
-    
+
+    calculator = IndicatorCalculator()
+
     print("=== 성능 테스트 ===")
     
     # 첫 번째 계산 (초기 계산)
