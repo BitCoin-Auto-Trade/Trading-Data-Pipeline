@@ -10,11 +10,11 @@ def get_db_connection():
     """PostgreSQL 데이터베이스에 대한 연결을 설정합니다."""
     try:
         conn = psycopg2.connect(
-            host=os.getenv("POSTGRES_HOST", "localhost"),
-            database=os.getenv("POSTGRES_DB", "postgres"),
-            user=os.getenv("POSTGRES_USER", "postgres"),
-            password=os.getenv("POSTGRES_PASSWORD", ""),
-            port=os.getenv("POSTGRES_PORT", 5432)
+            host=os.getenv("POSTGRES_HOST"),
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD"),
+            port=os.getenv("POSTGRES_PORT")
         )
         logger.info("데이터베이스 연결이 성공적으로 설정되었습니다.")
         return conn
