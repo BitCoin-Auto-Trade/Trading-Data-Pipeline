@@ -9,12 +9,15 @@ from contextlib import contextmanager
 from typing import List, Dict
 from src.utils.logger import get_logger
 from psycopg2 import pool
+from sqlalchemy import create_engine
+import numpy as np
 
 class PostgresUploader:
     """PostgreSQL 업로더"""
     
     def __init__(self, min_connections=1, max_connections=5):
         self.logger = get_logger(__name__)
+        self.engine = self._create_engine()
         self.connection_pool = None
         self.min_connections = min_connections
         self.max_connections = max_connections
@@ -25,6 +28,10 @@ class PostgresUploader:
         self.connection_errors = 0
         
         self._initialize_connection_pool()
+    
+    def _create_engine(self):
+        db_url = f"postgresql+psycopg2://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
+        return create_engine(db_url)
     
     def _initialize_connection_pool(self):
         """연결 풀 초기화"""
@@ -106,16 +113,15 @@ class PostgresUploader:
         """
         
         try:
-            with self.get_connection() as conn:
-                df = pd.read_sql(sql, conn, params=(symbol, limit))
-                
-                if not df.empty:
-                    df.set_index('timestamp', inplace=True)
-                    df.sort_index(inplace=True)
-                
-                self.logger.info(f"데이터베이스에서 {symbol}에 대한 {len(df)}개의 과거 kline을 가져왔습니다.")
-                return df
-                
+            df = pd.read_sql(sql, self.engine, params=(symbol, limit))
+
+            if not df.empty:
+                df.set_index('timestamp', inplace=True)
+                df.sort_index(inplace=True)
+
+            self.logger.info(f"데이터베이스에서 {symbol}에 대한 {len(df)}개의 과거 kline을 가져왔습니다.")
+            return df
+
         except (Exception, psycopg2.Error) as error:
             self.logger.error(f"과거 kline 데이터를 가져오는 중 오류 발생: {error}")
             return pd.DataFrame()
@@ -125,6 +131,16 @@ class PostgresUploader:
         if not self.is_connected():
             self.logger.error("kline 데이터를 업로드할 수 없습니다. PostgreSQL에 연결되어 있지 않습니다.")
             return
+
+        def convert_numpy_types(value):
+            if isinstance(value, (np.integer, np.floating)):
+                return value.item()
+            elif pd.isna(value):
+                return None
+            else:
+                return value
+
+        safe_data = {k: convert_numpy_types(v) for k, v in kline_data.items()}
 
         sql = """
         INSERT INTO klines_1m (
@@ -167,10 +183,10 @@ class PostgresUploader:
         try:
             with self.get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute(sql, kline_data)
+                cur.execute(sql, safe_data)
                 conn.commit()
                 self.upload_count += 1
-                self.logger.debug(f"{kline_data['timestamp']}에 {kline_data['symbol']}에 대한 kline 데이터를 업로드했습니다.")
+                self.logger.debug(f"{safe_data['timestamp']}에 {safe_data['symbol']}에 대한 kline 데이터를 업로드했습니다.")
                 
         except (Exception, psycopg2.Error) as error:
             self.logger.error(f"kline 데이터 업로드 중 오류 발생: {error}")

@@ -46,6 +46,10 @@ s3transfer==0.13.0
     # via boto3
 six==1.17.0
     # via python-dateutil
+sqlalchemy==2.0.41
+    # via -r requirements.in
+typing-extensions==4.14.1
+    # via sqlalchemy
 tzdata==2025.2
     # via pandas
 tzlocal==5.3.1

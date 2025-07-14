@@ -1,6 +1,12 @@
 """
 개선된 스케줄러 - 겹침 방지, 성능 모니터링, 안정성 강화
 """
+import sys
+import os
+
+# 프로젝트 루트 디렉토리를 Python 경로에 추가
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
 import datetime

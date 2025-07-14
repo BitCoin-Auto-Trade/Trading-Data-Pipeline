@@ -60,49 +60,57 @@ class IndicatorCalculator:
             self.states.clear()
             self.logger.info("모든 상태 초기화됨")
     
-    def format_klines(self, raw_klines: list) -> Optional[pd.DataFrame]:
+    def format_klines(self, raw_klines: list) -> pd.DataFrame | None:
         """원시 kline 목록을 형식화된 DataFrame으로 변환 (메모리 최적화)"""
         if not raw_klines:
             self.logger.warning("비어 있는 원시 kline 데이터를 받았습니다.")
             return None
-        
+
         start_time = time.time()
-        
+
         try:
-            # 메모리 효율적인 DataFrame 생성
-            df = pd.DataFrame(raw_klines, columns=[
-                'open_time', 'open', 'high', 'low', 'close', 'volume', 
-                'close_time', 'quote_asset_volume', 'number_of_trades',
-                'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-            ])
-            
+            #  안전한 DataFrame 생성
+            df = pd.DataFrame(raw_klines)
+
+            # 실제 컬럼 수에 맞춰 처리
+            if len(df.columns) >= 11:
+                df = df.iloc[:, :11]  # 처음 11개만 사용
+                df.columns = [
+                    'open_time', 'open', 'high', 'low', 'close', 'volume',
+                    'close_time', 'quote_asset_volume', 'number_of_trades',
+                    'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume'
+                ]
+            else:
+                self.logger.error(f"컬럼 수 부족: {len(df.columns)}")
+                return None
+
             # 메모리 절약을 위해 데이터 타입 변환
             df = df.astype({
                 'open': 'float32',
                 'high': 'float32',
-                'low': 'float32', 
+                'low': 'float32',
                 'close': 'float32',
                 'volume': 'float32'
             })
-            
+
             # 시간 인덱스 설정 (효율적)
             df['open_time'] = pd.to_datetime(df['open_time'], unit='ms')
             df.set_index('open_time', inplace=True)
-            
+
             # 불필요한 컬럼 즉시 제거 (메모리 절약)
             df = df[['open', 'high', 'low', 'close', 'volume']]
-            
+
             # NaN 값 처리
             if df.isna().any().any():
                 self.logger.warning("NaN 값이 발견되어 제거합니다.")
                 df = df.dropna()
-            
+
             elapsed_time = time.time() - start_time
             self.calculation_times['format'] = elapsed_time
-            
+
             self.logger.info(f"{len(df)}개의 kline을 DataFrame으로 형식화했습니다. ({elapsed_time:.3f}초)")
             return df
-            
+
         except Exception as e:
             self.logger.error(f"DataFrame 형식화 중 오류: {e}")
             return None
