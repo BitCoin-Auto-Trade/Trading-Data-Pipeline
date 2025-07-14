@@ -194,6 +194,10 @@ class ImprovedScheduler:
             df = self.formatter.calculate_sma(df, period=200)
             df = self.formatter.calculate_bollinger_bands(df, period=20)
             df = self.formatter.calculate_stochastic_oscillator(df, k_period=14, d_period=3)
+            df = self.formatter.calculate_volume_sma(df, period=20)
+            df = self.formatter.calculate_volume_ratio(df, period=20)
+            df = self.formatter.calculate_price_momentum(df, period=5)
+            df = self.formatter.calculate_volatility(df, period=20)
             
             logger.debug("기술적 지표 계산 완료")
             return df
@@ -229,7 +233,11 @@ class ImprovedScheduler:
                     'bb_middle': row.get('bb_middle'),
                     'bb_lower': row.get('bb_lower'),
                     'stoch_k': row.get('stoch_k'),
-                    'stoch_d': row.get('stoch_d')
+                    'stoch_d': row.get('stoch_d'),
+                    'volume_sma_20': row.get('volume_sma_20'),
+                    'volume_ratio': row.get('volume_ratio'),
+                    'price_momentum_5m': row.get('price_momentum_5m'),
+                    'volatility_20d': row.get('volatility_20d')
                 }
                 
                 self.uploader.upload_kline_data(kline_data)
