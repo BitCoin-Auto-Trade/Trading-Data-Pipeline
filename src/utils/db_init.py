@@ -1,13 +1,16 @@
 import os
 import psycopg2
+from contextlib import contextmanager
 from dotenv import load_dotenv
 from src.utils.logger import get_logger
 
 load_dotenv()
 logger = get_logger(__name__)
 
+@contextmanager
 def get_db_connection():
-    """PostgreSQL 데이터베이스에 대한 연결을 설정합니다."""
+    """데이터베이스 연결 컨텍스트 매니저"""
+    conn = None
     try:
         conn = psycopg2.connect(
             host=os.getenv("POSTGRES_HOST"),
@@ -16,91 +19,105 @@ def get_db_connection():
             password=os.getenv("POSTGRES_PASSWORD"),
             port=os.getenv("POSTGRES_PORT")
         )
-        logger.info("데이터베이스 연결이 성공적으로 설정되었습니다.")
-        return conn
-    except psycopg2.OperationalError as e:
-        logger.error(f"데이터베이스에 연결할 수 없습니다: {e}")
-        return None
-
-def create_tables():
-    """PostgreSQL 데이터베이스에 테이블을 생성하고 업데이트합니다."""
-    conn = None
-    try:
-        conn = get_db_connection()
-        if conn is None:
-            return
-            
-        cur = conn.cursor()
-
-        # 기본 테이블 생성
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS klines_1m (
-            timestamp TIMESTAMPTZ NOT NULL,
-            symbol VARCHAR(20) NOT NULL,
-            open NUMERIC,
-            high NUMERIC,
-            low NUMERIC,
-            close NUMERIC,
-            volume NUMERIC
-        );
-        """)
-
-        # 지표를 위한 열 추가
-        indicator_columns = [
-            "ema_20 NUMERIC", "rsi_14 NUMERIC", "macd NUMERIC", "macd_signal NUMERIC",
-            "macd_hist NUMERIC", "atr NUMERIC", "adx NUMERIC", "sma_50 NUMERIC",
-            "sma_200 NUMERIC", "bb_upper NUMERIC", "bb_middle NUMERIC", "bb_lower NUMERIC",
-            "stoch_k NUMERIC", "stoch_d NUMERIC", "volume_sma_20 NUMERIC", "volume_ratio NUMERIC",
-            "price_momentum_5m NUMERIC", "volatility_20d NUMERIC"
-        ]
-        for col in indicator_columns:
-            cur.execute(f"ALTER TABLE klines_1m ADD COLUMN IF NOT EXISTS {col};")
-
-        # 다른 테이블 생성
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS funding_rates (
-            timestamp TIMESTAMPTZ PRIMARY KEY,
-            symbol VARCHAR(20) NOT NULL,
-            funding_rate NUMERIC
-        );
-        """)
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS open_interest (
-            timestamp TIMESTAMPTZ PRIMARY KEY,
-            symbol VARCHAR(20) NOT NULL,
-            open_interest NUMERIC
-        );
-        """)
-
-        # klines_1m의 기본 키 확인 및 수정
-        cur.execute("""
-            SELECT con.conname, a.attname
-            FROM pg_catalog.pg_constraint con
-            JOIN pg_catalog.pg_attribute a ON a.attnum = ANY(con.conkey)
-            WHERE con.conrelid = 'klines_1m'::regclass AND con.contype = 'p';
-        """)
-        pk_info = cur.fetchall()
-        
-        pk_cols = {row[1] for row in pk_info}
-        pk_name = pk_info[0][0] if pk_info else None
-
-        if pk_cols != {'timestamp', 'symbol'}:
-            if pk_name:
-                cur.execute(f"ALTER TABLE klines_1m DROP CONSTRAINT IF EXISTS {pk_name};")
-            cur.execute("ALTER TABLE klines_1m ADD PRIMARY KEY (timestamp, symbol);")
-
+        yield conn
         conn.commit()
-        cur.close()
-        logger.info("모든 테이블이 성공적으로 생성되었거나 이미 존재하며, 필요한 스키마 변경이 적용되었습니다.")
-    except (Exception, psycopg2.DatabaseError) as error:
-        logger.error(f"테이블 생성 또는 수정 중 오류 발생: {error}")
+    except psycopg2.Error as e:
         if conn:
             conn.rollback()
+        logger.error(f"데이터베이스 오류: {e}")
+        raise
     finally:
-        if conn is not None:
+        if conn:
             conn.close()
 
+def create_tables():
+    """테이블 생성 및 스키마 업데이트"""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        
+        # 테이블 정의를 딕셔너리로 관리
+        tables = {
+            'klines_1m': {
+                'base_sql': """
+                CREATE TABLE IF NOT EXISTS klines_1m (
+                    timestamp TIMESTAMPTZ NOT NULL,
+                    symbol VARCHAR(20) NOT NULL,
+                    open NUMERIC,
+                    high NUMERIC,
+                    low NUMERIC,
+                    close NUMERIC,
+                    volume NUMERIC,
+                    PRIMARY KEY (timestamp, symbol)
+                );
+                """,
+                'indicators': [
+                    "ema_20 NUMERIC", "rsi_14 NUMERIC", "macd NUMERIC", 
+                    "macd_signal NUMERIC", "macd_hist NUMERIC", "atr NUMERIC",
+                    "adx NUMERIC", "sma_50 NUMERIC", "sma_200 NUMERIC",
+                    "bb_upper NUMERIC", "bb_middle NUMERIC", "bb_lower NUMERIC",
+                    "stoch_k NUMERIC", "stoch_d NUMERIC"
+                ]
+            },
+            'funding_rates': {
+                'base_sql': """
+                CREATE TABLE IF NOT EXISTS funding_rates (
+                    timestamp TIMESTAMPTZ PRIMARY KEY,
+                    symbol VARCHAR(20) NOT NULL,
+                    funding_rate NUMERIC
+                );
+                """
+            },
+            'open_interest': {
+                'base_sql': """
+                CREATE TABLE IF NOT EXISTS open_interest (
+                    timestamp TIMESTAMPTZ PRIMARY KEY,
+                    symbol VARCHAR(20) NOT NULL,
+                    open_interest NUMERIC
+                );
+                """
+            }
+        }
+        
+        # 테이블 생성
+        for table_name, config in tables.items():
+            cur.execute(config['base_sql'])
+            
+            # 지표 컬럼 추가 (klines_1m만)
+            if 'indicators' in config:
+                for indicator in config['indicators']:
+                    cur.execute(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {indicator};")
+        
+        logger.info("모든 테이블이 성공적으로 생성/업데이트되었습니다.")
+
+def verify_schema():
+    """스키마 검증"""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        
+        # 테이블 존재 확인
+        cur.execute("""
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+        """)
+        
+        tables = [row[0] for row in cur.fetchall()]
+        expected_tables = ['klines_1m', 'funding_rates', 'open_interest']
+        
+        missing_tables = set(expected_tables) - set(tables)
+        if missing_tables:
+            logger.warning(f"누락된 테이블: {missing_tables}")
+            return False
+        
+        logger.info("스키마 검증 완료")
+        return True
+
 if __name__ == '__main__':
-    print("데이터베이스를 초기화하고 테이블을 생성하는 중...")
-    create_tables()
-    print("데이터베이스 초기화 완료.")
+    print("데이터베이스 초기화 중...")
+    try:
+        create_tables()
+        if verify_schema():
+            print("데이터베이스 초기화 성공!")
+        else:
+            print("스키마 검증 실패")
+    except Exception as e:
+        print(f"초기화 실패: {e}")
