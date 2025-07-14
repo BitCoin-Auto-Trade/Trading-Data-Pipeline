@@ -424,6 +424,66 @@ class OptimizedIndicatorCalculator:
             self.logger.error(f"Stochastic 계산 중 오류: {e}")
             return df
     
+    def calculate_volume_sma(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+        """거래량 이동평균(SMA) 계산"""
+        start_time = time.time()
+        col_name = f'volume_sma_{period}'
+        try:
+            df[col_name] = df['volume'].rolling(window=period, min_periods=1).mean()
+            elapsed_time = time.time() - start_time
+            self.calculation_times[col_name] = elapsed_time
+            self.logger.debug(f"Volume SMA({period}) 계산 완료: {elapsed_time:.3f}초")
+            return df
+        except Exception as e:
+            self.logger.error(f"Volume SMA 계산 중 오류: {e}")
+            return df
+
+    def calculate_volume_ratio(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+        """거래량 비율 계산"""
+        start_time = time.time()
+        col_name = 'volume_ratio'
+        sma_col_name = f'volume_sma_{period}'
+        try:
+            if sma_col_name not in df.columns:
+                df = self.calculate_volume_sma(df, period)
+            df[col_name] = df['volume'] / df[sma_col_name]
+            elapsed_time = time.time() - start_time
+            self.calculation_times[col_name] = elapsed_time
+            self.logger.debug(f"Volume Ratio 계산 완료: {elapsed_time:.3f}초")
+            return df
+        except Exception as e:
+            self.logger.error(f"Volume Ratio 계산 중 오류: {e}")
+            return df
+
+    def calculate_price_momentum(self, df: pd.DataFrame, period: int = 5) -> pd.DataFrame:
+        """가격 모멘텀 계산"""
+        start_time = time.time()
+        col_name = f'price_momentum_5m'
+        try:
+            df[col_name] = df['close'].diff(period)
+            elapsed_time = time.time() - start_time
+            self.calculation_times[col_name] = elapsed_time
+            self.logger.debug(f"Price Momentum({period}) 계산 완료: {elapsed_time:.3f}초")
+            return df
+        except Exception as e:
+            self.logger.error(f"Price Momentum 계산 중 오류: {e}")
+            return df
+
+    def calculate_volatility(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+        """변동성 계산 (로그 수익률의 표준편차)"""
+        start_time = time.time()
+        col_name = f'volatility_20d'
+        try:
+            log_returns = np.log(df['close'] / df['close'].shift(1))
+            df[col_name] = log_returns.rolling(window=period).std() * np.sqrt(period)
+            elapsed_time = time.time() - start_time
+            self.calculation_times[col_name] = elapsed_time
+            self.logger.debug(f"Volatility({period}) 계산 완료: {elapsed_time:.3f}초")
+            return df
+        except Exception as e:
+            self.logger.error(f"Volatility 계산 중 오류: {e}")
+            return df
+    
     def calculate_all_indicators_batch(self, df: pd.DataFrame, symbol: str = "default") -> pd.DataFrame:
         """모든 지표를 배치로 효율적 계산"""
         if df.empty:
@@ -446,6 +506,10 @@ class OptimizedIndicatorCalculator:
             df = self.calculate_sma_optimized(df, 200)
             df = self.calculate_bollinger_bands_optimized(df, 20)
             df = self.calculate_stochastic_optimized(df, 14, 3)
+            df = self.calculate_volume_sma(df, 20)
+            df = self.calculate_volume_ratio(df, 20)
+            df = self.calculate_price_momentum(df, 5)
+            df = self.calculate_volatility(df, 20)
             
             total_elapsed = time.time() - total_start_time
             self.calculation_times['total'] = total_elapsed

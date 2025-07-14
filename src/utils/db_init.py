@@ -50,7 +50,8 @@ def create_tables():
             "ema_20 NUMERIC", "rsi_14 NUMERIC", "macd NUMERIC", "macd_signal NUMERIC",
             "macd_hist NUMERIC", "atr NUMERIC", "adx NUMERIC", "sma_50 NUMERIC",
             "sma_200 NUMERIC", "bb_upper NUMERIC", "bb_middle NUMERIC", "bb_lower NUMERIC",
-            "stoch_k NUMERIC", "stoch_d NUMERIC"
+            "stoch_k NUMERIC", "stoch_d NUMERIC", "volume_sma_20 NUMERIC", "volume_ratio NUMERIC",
+            "price_momentum_5m NUMERIC", "volatility_20d NUMERIC"
         ]
         for col in indicator_columns:
             cur.execute(f"ALTER TABLE klines_1m ADD COLUMN IF NOT EXISTS {col};")

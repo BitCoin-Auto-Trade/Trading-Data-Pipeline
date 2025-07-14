@@ -97,7 +97,8 @@ class OptimizedPostgresUploader:
         sql = """
         SELECT timestamp, symbol, open, high, low, close, volume,
                ema_20, rsi_14, macd, macd_signal, macd_hist, atr, adx,
-               sma_50, sma_200, bb_upper, bb_middle, bb_lower, stoch_k, stoch_d
+               sma_50, sma_200, bb_upper, bb_middle, bb_lower, stoch_k, stoch_d,
+               volume_sma_20, volume_ratio, price_momentum_5m, volatility_20d
         FROM klines_1m 
         WHERE symbol = %s 
         ORDER BY timestamp DESC 
@@ -129,11 +130,13 @@ class OptimizedPostgresUploader:
         INSERT INTO klines_1m (
             timestamp, symbol, open, high, low, close, volume,
             ema_20, rsi_14, macd, macd_signal, macd_hist, atr, adx,
-            sma_50, sma_200, bb_upper, bb_middle, bb_lower, stoch_k, stoch_d
+            sma_50, sma_200, bb_upper, bb_middle, bb_lower, stoch_k, stoch_d,
+            volume_sma_20, volume_ratio, price_momentum_5m, volatility_20d
         ) VALUES (
             %(timestamp)s, %(symbol)s, %(open)s, %(high)s, %(low)s, %(close)s, %(volume)s,
             %(ema_20)s, %(rsi_14)s, %(macd)s, %(macd_signal)s, %(macd_hist)s, %(atr)s, %(adx)s,
-            %(sma_50)s, %(sma_200)s, %(bb_upper)s, %(bb_middle)s, %(bb_lower)s, %(stoch_k)s, %(stoch_d)s
+            %(sma_50)s, %(sma_200)s, %(bb_upper)s, %(bb_middle)s, %(bb_lower)s, %(stoch_k)s, %(stoch_d)s,
+            %(volume_sma_20)s, %(volume_ratio)s, %(price_momentum_5m)s, %(volatility_20d)s
         )
         ON CONFLICT (timestamp, symbol) DO UPDATE SET
             open = EXCLUDED.open,
@@ -154,7 +157,11 @@ class OptimizedPostgresUploader:
             bb_middle = EXCLUDED.bb_middle,
             bb_lower = EXCLUDED.bb_lower,
             stoch_k = EXCLUDED.stoch_k,
-            stoch_d = EXCLUDED.stoch_d
+            stoch_d = EXCLUDED.stoch_d,
+            volume_sma_20 = EXCLUDED.volume_sma_20,
+            volume_ratio = EXCLUDED.volume_ratio,
+            price_momentum_5m = EXCLUDED.price_momentum_5m,
+            volatility_20d = EXCLUDED.volatility_20d
         """
         
         try:
@@ -181,11 +188,13 @@ class OptimizedPostgresUploader:
         INSERT INTO klines_1m (
             timestamp, symbol, open, high, low, close, volume,
             ema_20, rsi_14, macd, macd_signal, macd_hist, atr, adx,
-            sma_50, sma_200, bb_upper, bb_middle, bb_lower, stoch_k, stoch_d
+            sma_50, sma_200, bb_upper, bb_middle, bb_lower, stoch_k, stoch_d,
+            volume_sma_20, volume_ratio, price_momentum_5m, volatility_20d
         ) VALUES (
             %(timestamp)s, %(symbol)s, %(open)s, %(high)s, %(low)s, %(close)s, %(volume)s,
             %(ema_20)s, %(rsi_14)s, %(macd)s, %(macd_signal)s, %(macd_hist)s, %(atr)s, %(adx)s,
-            %(sma_50)s, %(sma_200)s, %(bb_upper)s, %(bb_middle)s, %(bb_lower)s, %(stoch_k)s, %(stoch_d)s
+            %(sma_50)s, %(sma_200)s, %(bb_upper)s, %(bb_middle)s, %(bb_lower)s, %(stoch_k)s, %(stoch_d)s,
+            %(volume_sma_20)s, %(volume_ratio)s, %(price_momentum_5m)s, %(volatility_20d)s
         )
         ON CONFLICT (timestamp, symbol) DO UPDATE SET
             open = EXCLUDED.open,
@@ -206,7 +215,11 @@ class OptimizedPostgresUploader:
             bb_middle = EXCLUDED.bb_middle,
             bb_lower = EXCLUDED.bb_lower,
             stoch_k = EXCLUDED.stoch_k,
-            stoch_d = EXCLUDED.stoch_d
+            stoch_d = EXCLUDED.stoch_d,
+            volume_sma_20 = EXCLUDED.volume_sma_20,
+            volume_ratio = EXCLUDED.volume_ratio,
+            price_momentum_5m = EXCLUDED.price_momentum_5m,
+            volatility_20d = EXCLUDED.volatility_20d
         """
         
         try:
@@ -255,7 +268,8 @@ class OptimizedPostgresUploader:
                     item.get('macd_signal'), item.get('macd_hist'), item.get('atr'),
                     item.get('adx'), item.get('sma_50'), item.get('sma_200'),
                     item.get('bb_upper'), item.get('bb_middle'), item.get('bb_lower'),
-                    item.get('stoch_k'), item.get('stoch_d')
+                    item.get('stoch_k'), item.get('stoch_d'), item.get('volume_sma_20'),
+                    item.get('volume_ratio'), item.get('price_momentum_5m'), item.get('volatility_20d')
                 ])
             
             output.seek(0)
@@ -273,7 +287,8 @@ class OptimizedPostgresUploader:
                     COPY temp_klines (
                         timestamp, symbol, open, high, low, close, volume,
                         ema_20, rsi_14, macd, macd_signal, macd_hist, atr, adx,
-                        sma_50, sma_200, bb_upper, bb_middle, bb_lower, stoch_k, stoch_d
+                        sma_50, sma_200, bb_upper, bb_middle, bb_lower, stoch_k, stoch_d,
+                        volume_sma_20, volume_ratio, price_momentum_5m, volatility_20d
                     ) FROM STDIN WITH (FORMAT CSV, DELIMITER E'\t', NULL '')
                 """, output)
                 
@@ -300,7 +315,11 @@ class OptimizedPostgresUploader:
                         bb_middle = EXCLUDED.bb_middle,
                         bb_lower = EXCLUDED.bb_lower,
                         stoch_k = EXCLUDED.stoch_k,
-                        stoch_d = EXCLUDED.stoch_d
+                        stoch_d = EXCLUDED.stoch_d,
+                        volume_sma_20 = EXCLUDED.volume_sma_20,
+                        volume_ratio = EXCLUDED.volume_ratio,
+                        price_momentum_5m = EXCLUDED.price_momentum_5m,
+                        volatility_20d = EXCLUDED.volatility_20d
                 """)
                 
                 conn.commit()
