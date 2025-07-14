@@ -363,7 +363,7 @@ if __name__ == "__main__":
             time.sleep(10)
             
             # 10초마다 상태 체크 (선택사항)
-            status = scheduler.get_status()
+            status = job_runner.get_status()
             if status["consecutive_errors"] >= 3:
                 logger.critical("연속 오류가 3회를 초과했습니다. 스케줄러를 중단합니다.")
                 break
