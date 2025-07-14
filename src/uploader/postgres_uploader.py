@@ -116,6 +116,7 @@ class PostgresUploader:
             df = pd.read_sql(sql, self.engine, params=(symbol, limit))
 
             if not df.empty:
+                df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
                 df.set_index('timestamp', inplace=True)
                 df.sort_index(inplace=True)
 

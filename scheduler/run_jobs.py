@@ -20,7 +20,7 @@ from src.utils.logger import get_logger
 logger = get_logger("scheduler")
 
 class TradingDataScheduler:
-    """개선된 스케줄러 클래스"""
+    """스케줄러 클래스"""
     
     def __init__(self):
         self.collector = BinanceClient()

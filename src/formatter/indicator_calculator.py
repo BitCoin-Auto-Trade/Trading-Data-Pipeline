@@ -94,7 +94,7 @@ class IndicatorCalculator:
             })
 
             # 시간 인덱스 설정 (효율적)
-            df['open_time'] = pd.to_datetime(df['open_time'], unit='ms')
+            df['open_time'] = pd.to_datetime(df['open_time'], unit='ms', utc=True)
             df.set_index('open_time', inplace=True)
 
             # 불필요한 컬럼 즉시 제거 (메모리 절약)
