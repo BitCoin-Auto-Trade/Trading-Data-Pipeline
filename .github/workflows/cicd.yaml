@@ -49,8 +49,8 @@ jobs:
             /home/ubuntu/Trading-Data-Pipeline/venv/bin/pip install -r requirements.txt
 
             # systemd 서비스 재시작!
-            sudo systemctl restart trading-scheduler
-            sudo systemctl restart binance-ws-client
+            sudo systemctl restart trading-scheduler.service
+            sudo systemctl restart binance-ws-client.service
 
             echo "Deployment and systemd service restart complete."
 
