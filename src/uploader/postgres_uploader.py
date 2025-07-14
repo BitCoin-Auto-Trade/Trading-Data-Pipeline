@@ -10,7 +10,7 @@ from typing import List, Dict
 from src.utils.logger import get_logger
 from psycopg2 import pool
 
-class OptimizedPostgresUploader:
+class PostgresUploader:
     """PostgreSQL 업로더"""
     
     def __init__(self, min_connections=1, max_connections=5):

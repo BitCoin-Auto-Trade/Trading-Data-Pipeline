@@ -345,13 +345,13 @@ def start_improved_scheduler():
         improved_scheduler.fetch_and_process_binance_data, 
         'cron', 
         minute='*', 
-        second=5,  # 5초에 실행 (기존 3초에서 변경)
+        second=5,  # 5초에 실행
         id="improved_binance_data_processing",
         max_instances=1  # 동시 실행 방지
     )
     
     scheduler.start()
-    logger.info("개선된 스케줄러가 시작되었습니다. 매 분 5초에 데이터 처리가 실행됩니다.")
+    logger.info("스케줄러가 시작되었습니다. 매 분 5초에 데이터 처리가 실행됩니다.")
     
     return scheduler
 
@@ -363,7 +363,7 @@ if __name__ == "__main__":
             time.sleep(10)
             
             # 10초마다 상태 체크 (선택사항)
-            status = improved_scheduler.get_status()
+            status = scheduler.get_status()
             if status["consecutive_errors"] >= 3:
                 logger.critical("연속 오류가 3회를 초과했습니다. 스케줄러를 중단합니다.")
                 break

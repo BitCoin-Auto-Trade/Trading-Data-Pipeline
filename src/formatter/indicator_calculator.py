@@ -26,7 +26,7 @@ class IndicatorState:
         if self.atr_tr_values is None:
             self.atr_tr_values = []
 
-class OptimizedIndicatorCalculator:
+class IndicatorCalculator:
     """기술적 지표 계산기"""
     
     def __init__(self):

@@ -16,7 +16,7 @@ from src.utils.logger import get_logger
 
 load_dotenv()
 
-class ResilientBinanceClient:
+class BinanceClient:
     """바이낸스 선물 API 클라이언트"""
     
     BASE_URL = "https://fapi.binance.com"
@@ -431,7 +431,7 @@ if __name__ == '__main__':
     
     # 헬스 체크
     if client.health_check():
-        print("✅ API 연결 성공")
+        print("API 연결 성공")
         
         # 성능 테스트
         print("\n=== 성능 테스트 ===")

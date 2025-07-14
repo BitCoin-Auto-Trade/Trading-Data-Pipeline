@@ -343,7 +343,7 @@ class RobustBinanceWebSocketClient:
             self.invalid_message_count = 0
         self.logger.info("WebSocket 통계가 초기화되었습니다.")
 
-class OptimizedDataHandler:
+class DataHandler:
     """최적화된 데이터 처리기"""
     
     def __init__(self):
@@ -509,8 +509,8 @@ class EnhancedBinanceWebSocketClient:
         self.streams = self._build_streams()
         
         # 컴포넌트 초기화
-        self.data_handler = OptimizedDataHandler()
-        self.ws_client = RobustBinanceWebSocketClient(
+        self.data_handler = DataHandler()
+        self.ws_client = WebSocketClient(
             streams=self.streams,
             on_message_callback=self.data_handler.handle_and_upload_message
         )
@@ -560,7 +560,7 @@ if __name__ == '__main__':
     import sys
     
     def signal_handler(sig, frame):
-        print('\n강화된 WebSocket 클라이언트를 중지합니다...')
+        print('\nWebSocket 클라이언트를 중지합니다...')
         client.stop()
         sys.exit(0)
     
@@ -569,8 +569,8 @@ if __name__ == '__main__':
     
     # 클라이언트 시작
     client = EnhancedBinanceWebSocketClient(["BTCUSDT"])
-    
-    print("강화된 WebSocket 클라이언트 시작...")
+
+    print("WebSocket 클라이언트 시작...")
     print("Ctrl+C로 중지할 수 있습니다.")
     
     try:
